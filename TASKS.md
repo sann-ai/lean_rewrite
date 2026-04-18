@@ -8,11 +8,13 @@
 
 ## T001 — mathlib4 をローカルにクローン
 
-- status: claimed
+- status: done
 - claimed_by: human0
 - claimed_at: 2026-04-18T13:57:00Z
+- done_at: 2026-04-18T14:00:56Z
 - 依存: なし
 - 内容: `https://github.com/leanprover-community/mathlib4` を `/Users/san/mathlib4` に clone。`lake exe cache get` を実行し、`lake build Mathlib.Logic.Basic` など小さなモジュールのビルドが通ることを確認。使用した mathlib の commit SHA を `NOTEBOOK.md` に記録する。
+- 結果: SHA `896cc56a395e1615786fac56564a3fe6bfeebcc4`、toolchain `leanprover/lean4:v4.30.0-rc2`、sanity build 成功 (2.5s)。詳細は `NOTEBOOK.md`。
 
 ## T002 — refactor-commit データセット抽出
 
