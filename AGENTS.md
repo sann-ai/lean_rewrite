@@ -131,8 +131,44 @@ End the session under any of the following:
 
 - macOS (darwin), `elan` + `lean` + `lake` already installed
 - `gh` CLI authenticated as `sann-ai` with push access
-- Python 3.11+
-- mathlib4 is not cloned initially — `T001` is responsible for cloning it to `/Users/san/mathlib4`
+- Python 3 available as `python3` (not `python`); `pytest` already installed globally
+- mathlib4 is cloned at `/Users/san/mathlib4` (done by T001). **Treat it as read-only.**
+- This machine is shared with other Lean / Python projects. Respect the rules below to avoid stepping on them.
+
+## Isolation rules (do not break)
+
+### Mathlib must never be edited in place
+
+The shared mathlib4 clone at `/Users/san/mathlib4` is used by other projects on this machine. **Agents must never modify it directly.** If your task needs a modified mathlib (e.g. to test a candidate rewrite), create an ephemeral worktree:
+
+```bash
+MLWT=$(mktemp -d -t mlwt-XXXXXX)
+(cd /Users/san/mathlib4 && git worktree add "$MLWT" HEAD)
+# apply changes inside $MLWT, build there with `cd $MLWT && lake build ...`
+# The .lake cache from the parent mathlib4 is shared automatically.
+```
+
+On session exit, clean up:
+
+```bash
+(cd /Users/san/mathlib4 && git worktree remove --force "$MLWT" 2>/dev/null) || rm -rf "$MLWT"
+```
+
+The parent clone's `.lake/` cache is linked into worktrees, so cache downloads are not duplicated. Worktrees that fail to clean up cost disk, not correctness.
+
+### Python dependencies stay in a per-session venv
+
+If your task requires installing any Python package beyond the standard library and `pytest`, do it inside a per-session venv, never globally:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .  # or install the specific dep you need
+```
+
+The `.venv/` directory is gitignored. Do not commit `requirements.txt`/`pyproject.toml` dependency additions without justifying them in `NOTEBOOK.md`.
+
+If your task needs no extra deps (as T003/T004 did not), just run `python3 -m pytest tests/` directly — no venv needed.
 
 ## Common pitfalls
 
