@@ -273,9 +273,9 @@
 
 ## T019 — `is_improvement()` 拡張: typeclass 合成シグナルを追加
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: BtWWZz
+- claimed_at: 2026-04-18T21:39:13Z
 - 依存: T008, T005
 - 内容:
   T015 で判明した問題: `SkewPolynomial` のような typeclass-heavy な定義では `def → abbrev` 変換が有効な改善であっても、下流に明示的な `unfold` 呼び出しがなく `is_improvement()` が REJECTED を返す。実際の mathlib コミット (6f0e175f) では `abbrev` 化が採用されており、pipeline がこれを検出できないのはメトリクスの欠落。
