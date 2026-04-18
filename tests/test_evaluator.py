@@ -18,6 +18,7 @@ from lean_rewrite.evaluator import (
     EvalResult,
     ModuleComparison,
     ModuleMetrics,
+    _count_instance_context,
     _count_unfolds,
     _inject_profiler_option,
     _module_to_path,
@@ -434,3 +435,80 @@ def test_evaluate_inject_profiler_false_leaves_files_unchanged(tmp_path: Path) -
 
     for wt in (bwt, cwt):
         assert (wt / "Foo" / "Bar.lean").read_text(encoding="utf-8") == original
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for _count_instance_context
+# ---------------------------------------------------------------------------
+
+
+def test_count_instance_context_basic() -> None:
+    src = "instance : Add SkewPolynomial := ...\n"
+    assert _count_instance_context(src, "SkewPolynomial") == 1
+
+
+def test_count_instance_context_deriving() -> None:
+    src = "deriving instance Repr for SkewPolynomial\n"
+    assert _count_instance_context(src, "SkewPolynomial") == 1
+
+
+def test_count_instance_context_multiple_lines() -> None:
+    src = (
+        "instance : Add SkewPolynomial := ...\n"
+        "instance : Mul SkewPolynomial := ...\n"
+        "def something := 1\n"
+    )
+    assert _count_instance_context(src, "SkewPolynomial") == 2
+
+
+def test_count_instance_context_no_match() -> None:
+    src = "instance : Add Foo := ...\n"
+    assert _count_instance_context(src, "SkewPolynomial") == 0
+
+
+def test_count_instance_context_empty_def_name() -> None:
+    src = "instance : Add Foo := ...\n"
+    assert _count_instance_context(src, "") == 0
+
+
+def test_count_instance_context_no_keyword() -> None:
+    src = "def SkewPolynomial := ...\n"
+    assert _count_instance_context(src, "SkewPolynomial") == 0
+
+
+def test_count_instance_context_word_boundary() -> None:
+    src = "instance : Add SkewPolynomialExtra := ...\n"
+    assert _count_instance_context(src, "SkewPolynomial") == 0
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for EvalResult.total_instance_context_baseline
+# ---------------------------------------------------------------------------
+
+
+def test_eval_result_total_instance_context_baseline() -> None:
+    """total_instance_context_baseline sums instance_context_count from all baselines."""
+    build = _fake_build(True, 1.0)
+    m1 = ModuleMetrics(module="A", build=build, unfold_count=0, proof_loc=10, instance_context_count=3)
+    m2 = ModuleMetrics(module="B", build=build, unfold_count=0, proof_loc=5, instance_context_count=2)
+    cmp1 = ModuleComparison(module="A", baseline=m1, candidate=m1)
+    cmp2 = ModuleComparison(module="B", baseline=m2, candidate=m2)
+    result = EvalResult(
+        baseline_worktree=Path("/b"),
+        candidate_worktree=Path("/c"),
+        def_name="SkewPolynomial",
+        comparisons=[cmp1, cmp2],
+    )
+    assert result.total_instance_context_baseline == 5
+
+
+def test_eval_result_total_instance_context_baseline_zero() -> None:
+    build = _fake_build(True, 1.0)
+    m = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=0, instance_context_count=0)
+    result = EvalResult(
+        baseline_worktree=Path("/b"),
+        candidate_worktree=Path("/c"),
+        def_name="foo",
+        comparisons=[ModuleComparison(module="M", baseline=m, candidate=m)],
+    )
+    assert result.total_instance_context_baseline == 0

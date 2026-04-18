@@ -128,6 +128,39 @@ def test_improvement_with_multiple_modules():
     assert is_improvement(result) is True
 
 
+def test_improvement_when_instance_context_baseline_positive():
+    """SkewPolynomial scenario: no unfolds but typeclass synthesis context exists."""
+    build = _ok_build()
+    base_m = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=10, instance_context_count=1)
+    cand_m = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=10, instance_context_count=1)
+    cmp = ModuleComparison(module="M", baseline=base_m, candidate=cand_m)
+    result = _eval_result([cmp], def_name="SkewPolynomial")
+    assert is_improvement(result) is True
+
+
+def test_no_improvement_when_all_signals_zero():
+    """All signals absent — all-zero metrics → REJECTED."""
+    build = _ok_build()
+    base_m = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=10, instance_context_count=0)
+    cand_m = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=10, instance_context_count=0)
+    cmp = ModuleComparison(module="M", baseline=base_m, candidate=cand_m)
+    result = _eval_result([cmp], def_name="foo")
+    assert is_improvement(result) is False
+
+
+def test_improvement_skew_polynomial_scenario():
+    """Mocked SkewPolynomial case: baseline has 3 instance-context lines, no unfolds."""
+    build = _ok_build()
+    base_m = ModuleMetrics(module="Mathlib.RingTheory.SkewPolynomial.Basic", build=build,
+                           unfold_count=0, proof_loc=500, instance_context_count=3)
+    cand_m = ModuleMetrics(module="Mathlib.RingTheory.SkewPolynomial.Basic", build=build,
+                           unfold_count=0, proof_loc=500, instance_context_count=3)
+    cmp = ModuleComparison(module="Mathlib.RingTheory.SkewPolynomial.Basic",
+                           baseline=base_m, candidate=cand_m)
+    result = _eval_result([cmp], def_name="SkewPolynomial")
+    assert is_improvement(result) is True
+
+
 # ---------------------------------------------------------------------------
 # make_patch
 # ---------------------------------------------------------------------------

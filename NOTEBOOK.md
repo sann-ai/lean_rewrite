@@ -536,3 +536,29 @@
   - T020: add `has_termination_by` safety guard to skip unsafe defs.
   - After T019+T020, a follow-up planning round should propose a full 6-record re-validation
     to confirm Tier 2 with the improved metric.
+
+## 2026-04-18T21:42:23Z — T019 — BtWWZz
+
+- Did:
+  - Added `_count_instance_context(source, def_name) -> int` to `evaluator.py`: counts lines where `instance`/`deriving` keyword and `def_name` co-occur (word-boundary matched). This is the typeclass-synthesis signal for `def → abbrev` improvements.
+  - Added `instance_context_count: int = 0` field to `ModuleMetrics`.
+  - Added `total_instance_context_baseline` property to `EvalResult`.
+  - Updated `_collect_metrics()` to compute `instance_context_count` from baseline source.
+  - Updated `is_improvement()` in `main.py`: new condition `OR total_instance_context_baseline > 0` (alongside existing unfold signals). This makes the SkewPolynomial case ACCEPTED.
+  - Updated `format_report()` to show `Baseline instance context count: N`.
+  - Added 7 unit tests for `_count_instance_context` and 2 for `total_instance_context_baseline` to `tests/test_evaluator.py`.
+  - Added 3 new tests to `tests/test_main.py` (SkewPolynomial scenario, all-zero → REJECTED, instance context → ACCEPTED).
+  - All 152 tests pass.
+- Learned:
+  - The typeclass signal is coarse (any line with `instance`/`deriving` + `def_name`), but it correctly identifies the SkewPolynomial class of improvements. False positives are possible if a module mentions the name in an instance declaration that doesn't depend on reducibility, but this is a conservative signal (ACCEPTED when uncertain).
+  - Word-boundary matching on `def_name` avoids `SkewPolynomialExtra` false matches.
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (new function `_count_instance_context`, new field `instance_context_count`, new property `total_instance_context_baseline`, updated `_collect_metrics`)
+  - `src/lean_rewrite/main.py` (updated `is_improvement`, `format_report`)
+  - `tests/test_evaluator.py` (import `_count_instance_context`, 9 new tests)
+  - `tests/test_main.py` (3 new tests, imports `ModuleMetrics`, `ModuleComparison`)
+  - `TASKS.md` (T019 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T020 (safety guard: skip `termination_by` defs) is now unblocked.
+  - After T020, a re-validation pass over all 6 post-module records with the improved metric would confirm Tier 2 (SkewPolynomial should now be ACCEPTED).

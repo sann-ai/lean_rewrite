@@ -29,6 +29,7 @@ class ModuleMetrics:
     unfold_count: int
     proof_loc: int
     elaboration_time_sec: float | None = None
+    instance_context_count: int = 0
 
     @property
     def wall_time_sec(self) -> float:
@@ -89,6 +90,11 @@ class EvalResult:
     def total_unfold_count_baseline(self) -> int:
         """Total unfold occurrences of the target def in baseline downstream files."""
         return sum(c.baseline.unfold_count for c in self.comparisons)
+
+    @property
+    def total_instance_context_baseline(self) -> int:
+        """Lines in baseline downstream files where `instance`/`deriving` co-occurs with def_name."""
+        return sum(c.baseline.instance_context_count for c in self.comparisons)
 
 
 def _parse_elaboration_times(stdout: str) -> dict[str, float]:
@@ -158,6 +164,23 @@ def _proof_loc(source: str) -> int:
     return sum(1 for line in source.splitlines() if line.strip())
 
 
+def _count_instance_context(source: str, def_name: str) -> int:
+    """Count lines where `instance`/`deriving` and `def_name` co-occur.
+
+    This is a proxy for how many downstream uses rely on typeclass synthesis
+    over the target definition — the primary signal that `def → abbrev` helps
+    even when no explicit `unfold` calls appear.
+    """
+    if not def_name:
+        return 0
+    name_pat = re.compile(rf"\b{re.escape(def_name)}\b")
+    kw_pat = re.compile(r"\b(instance|deriving)\b")
+    return sum(
+        1 for line in source.splitlines()
+        if kw_pat.search(line) and name_pat.search(line)
+    )
+
+
 def _collect_metrics(
     worktree: Path,
     module: str,
@@ -169,9 +192,11 @@ def _collect_metrics(
         source = src_path.read_text(encoding="utf-8", errors="replace")
         unfold_count = _count_unfolds(source, def_name)
         loc = _proof_loc(source)
+        instance_context_count = _count_instance_context(source, def_name)
     else:
         unfold_count = 0
         loc = 0
+        instance_context_count = 0
     elab_times = _parse_elaboration_times(build.stdout)
     return ModuleMetrics(
         module=module,
@@ -179,6 +204,7 @@ def _collect_metrics(
         unfold_count=unfold_count,
         proof_loc=loc,
         elaboration_time_sec=elab_times.get(module),
+        instance_context_count=instance_context_count,
     )
 
 

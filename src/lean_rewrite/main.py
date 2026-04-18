@@ -55,14 +55,18 @@ def _git_worktree_remove(mathlib: Path, dest: Path) -> None:
 
 
 def is_improvement(result: EvalResult) -> bool:
-    """True when builds all succeed and unfold usage improves.
+    """True when builds all succeed and there is a positive improvement signal.
 
-    Improvement means either the candidate source has fewer unfold calls
-    (delta < 0) OR the baseline already had unfold calls that abbrev-ification
-    makes redundant no-ops (baseline > 0).
+    Signals (any one is sufficient):
+    - unfold count decreased (delta < 0)
+    - baseline had unfold calls that abbrev-ification makes redundant no-ops (baseline > 0)
+    - baseline downstream had typeclass synthesis context (instance/deriving with def_name),
+      meaning abbrev enables the elaborator to look through the definition automatically
     """
     return result.all_succeeded and (
-        result.total_unfold_count_delta < 0 or result.total_unfold_count_baseline > 0
+        result.total_unfold_count_delta < 0
+        or result.total_unfold_count_baseline > 0
+        or result.total_instance_context_baseline > 0
     )
 
 
@@ -76,6 +80,7 @@ def format_report(result: EvalResult, improved: bool) -> str:
         f"Wall time delta (sum):  {result.total_wall_time_delta:+.2f}s",
         f"Baseline unfold count:  {result.total_unfold_count_baseline}",
         f"Unfold count delta:     {result.total_unfold_count_delta:+d}",
+        f"Baseline instance context count: {result.total_instance_context_baseline}",
         f"Proof LOC delta:        {total_loc_delta:+d}",
         "",
     ]
@@ -100,7 +105,7 @@ def format_report(result: EvalResult, improved: bool) -> str:
         if not result.all_succeeded:
             lines.append("  Reason: one or more builds failed")
         else:
-            lines.append("  Reason: no unfold reduction and no baseline unfold calls")
+            lines.append("  Reason: no unfold reduction, no baseline unfold calls, and no typeclass synthesis context")
 
     return "\n".join(lines)
 
