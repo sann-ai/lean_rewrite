@@ -1,0 +1,21 @@
+SHA:                  d7d8b15217f992b9b316cd3afb7b613106c81f72
+Commit:               refactor: Change the definition of `Num.ofNat'` (#2782)
+File:                 Mathlib/Data/Num/Basic.lean
+Note: before-state uses pre-module-system import syntax; build failure likely due to toolchain incompatibility.
+
+Definition:             ofNat'
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-d7d8b152-t_qyy8hj/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-d7d8b152-t_qyy8hj/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Data.Num.Basic
+    Both succeeded: False
+    Baseline FAILED (rc=1)
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

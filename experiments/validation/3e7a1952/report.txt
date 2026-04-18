@@ -1,0 +1,21 @@
+SHA:                  3e7a1952821f97af73616bdb2cfbf833afbb2ee1
+Commit:               refactor: make TProd reducible (#12686)
+File:                 Mathlib/Data/Prod/TProd.lean
+Note: before-state uses pre-module-system import syntax; build failure likely due to toolchain incompatibility.
+
+Definition:             TProd
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-3e7a1952-fft7bz60/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-3e7a1952-fft7bz60/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Data.Prod.TProd
+    Both succeeded: False
+    Baseline FAILED (rc=1)
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

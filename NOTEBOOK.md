@@ -252,3 +252,29 @@
 - Next steps:
   - T010 (Tier 2 validation) and T011 (elaboration time metrics) are both unblocked.
   - The natural next E2E test: run `python -m lean_rewrite.main --mathlib /Users/san/mathlib4 --file Mathlib/Data/Nat/Dist.lean --def-name dist --downstream Mathlib.Data.Nat.Dist --timeout 900 --output-dir experiments/001/run2 --remove-unfolds`. This should produce ACCEPTED with `unfold Nat.dist` removed from `Dist.lean` in the candidate worktree, and the downstream build should still succeed.
+
+## 2026-04-18T18:57:08Z — T010 — o3DTOn
+
+- Did:
+  - Wrote `scripts/validate_refactors.py`. Selects 3 cases from `data/refactor_commits.jsonl` (preferring def→abbrev, falling back to small def→def), creates ephemeral mathlib4 worktrees at current HEAD, reverts the target file to before-state via `git show sha^:file`, applies `def_to_abbrev`, evaluates both builds, saves reports to `experiments/validation/<sha8>/report.txt`.
+  - Selected cases: `3e7a1952` (TProd, genuine def→abbrev), `1d311cba` (FixedPoints.subalgebra, def→def sig generalisation), `d7d8b152` (ofNat', def→def body change).
+  - 3 reports written; all have `All builds succeeded:` and `VERDICT:` lines (acceptance criteria met).
+  - Wrote `experiments/validation/README.md` summarising results and key findings.
+  - All 94 existing tests pass.
+- Learned:
+  - **Dataset/toolchain incompatibility**: 2 of 3 cases use pre-module-system import syntax (`import Mathlib.X`) from before December 2024 (commit `6a54a80825`). The current toolchain (`v4.30.0-rc2`) requires the new `module`/`public import` syntax. Reverting to old file content causes build failure. The 152-entry dataset is predominantly from the old era.
+  - **Only 1 genuine def→abbrev entry exists** in the dataset (when searching for `def` keyword in before and `abbrev` keyword in after). The task description expected more.
+  - **Case `1d311cba` (FixedPoints.subalgebra) built successfully** (both baseline and candidate). `def_to_abbrev` applied correctly. REJECTED by metric (no unfold calls in baseline), not a build failure.
+  - **Strict def→abbrev filter (before_def starts with "def ")**: 0 matches. Relaxed filter (def keyword anywhere in block): 1 match (TProd). Dataset dominated by body-only or attribute-only changes.
+- Files touched:
+  - `scripts/validate_refactors.py` (new)
+  - `experiments/validation/3e7a1952/report.txt` (new)
+  - `experiments/validation/1d311cba/report.txt` (new)
+  - `experiments/validation/d7d8b152/report.txt` (new)
+  - `experiments/validation/README.md` (new)
+  - `TASKS.md` (T010 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 2 completion requires finding post-Dec-2024 mathlib commits with def→abbrev changes (current dataset is incompatible with current toolchain). A follow-up task should filter git history for commits after `6a54a80825`.
+  - T011 (elaboration time metrics) is unblocked and orthogonal.
+  - Consider a new task: mine post-module-system mathlib commits for def→abbrev changes to build a compatible validation dataset.

@@ -1,0 +1,21 @@
+SHA:                  1d311cba8bc3eb5a47e67918e98abc035b2c01d6
+Commit:               refactor(Algebra/Algebra/Subalgebra/Operations): generalize `FixedPoints.subalge
+File:                 Mathlib/Algebra/Algebra/Subalgebra/Operations.lean
+
+Definition:             FixedPoints.subalgebra
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-1d311cba-pxzwgd8c/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-1d311cba-pxzwgd8c/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -1.60s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Algebra.Algebra.Subalgebra.Operations
+    Both succeeded: True
+    Wall time delta:   -1.60s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no unfold reduction and no baseline unfold calls
