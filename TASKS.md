@@ -59,9 +59,9 @@
 
 ## T006 — エンドツーエンド MVP の配線
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: l4m3ai
+- claimed_at: 2026-04-18T16:39:15Z
 - 依存: T001, T003, T004, T005, T007
 - 内容: T003 + T004 + T005 を `src/lean_rewrite/main.py` に配線。入力: mathlib パス、対象ファイル、対象 def 名。出力: メトリクスが改善したら patch ファイル、しなかったら reject 理由レポート。
 
