@@ -155,3 +155,26 @@
   - フェーズ1 MVP 完成。実際の E2E 実行例: `python -m lean_rewrite.main --mathlib /Users/san/mathlib4 --file Mathlib/Data/Nat/Dist.lean --def-name dist --downstream Mathlib.Data.Nat.Dist --timeout 300 --output-dir experiments/001/run1`
   - T002 (refactor-commit データセット抽出) が残り唯一の open タスク。フェーズ1 の次フェーズ準備として進められる。
   - elaboration 時間の正確な計測 (`set_option profiler true` 統合) は T005 のノートで指摘済み — 新タスクとして追加可能。
+
+## 2026-04-18T17:05:02Z — T002 — mcdr9m
+
+- Did:
+  - Implemented `scripts/fetch_refactor_commits.py`. Scans mathlib4 git history for `refactor`/`perf` commits, filters to those changing exactly one `.lean` file and exactly one `def`/`abbrev`/`structure`/`class` block, and writes `data/refactor_commits.jsonl` (fields: `sha`, `message`, `file`, `def_name`, `before_def`, `after_def`).
+  - Key design: rather than relying on diff header lines to find def names (which misses body-only changes), the script extracts all def blocks from the before/after file content using `extract_all_def_blocks()` and compares them directly. This catches both header-line and body-only refactors.
+  - Added `tests/test_fetch_refactor.py` with 22 unit tests covering `find_changed_def_names`, `extract_def_block`, `extract_all_def_blocks`, and `find_changed_blocks` (including a `test_body_only_change_detected` case that the original diff-based approach would have missed).
+  - Ran the script over full mathlib4 history (1317 refactor/perf commits scanned). Produced 152 records — well above the 50-record target.
+  - All 79 tests pass (22 new + 57 pre-existing).
+- Learned:
+  - Most refactor/perf commits fail the filter because they change multiple `.lean` files (162/227 in the recent 5000). Only ~10% of single-file commits have exactly 1 changed def block.
+  - Scanning the full history (30k commits, 1317 candidates) is needed to reach 50+ records; limiting to the last 5000 yields only ~8.
+  - The `extract_all_def_blocks` approach handles attributes (`@[simp]`) and doc-comments (`/-- -/`) before the def header by walking backwards from the def line, which is essential for correctly bounding block extent.
+  - `abbrev` and structure types were also captured alongside `def`, giving richer variety in the dataset.
+- Files touched:
+  - `scripts/fetch_refactor_commits.py` (new)
+  - `tests/test_fetch_refactor.py` (new)
+  - `data/refactor_commits.jsonl` (new, 152 records)
+  - `TASKS.md` (T002 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - The dataset can now feed a pattern-mining step: cluster by `def_name` type (def→abbrev, attribute changes, signature generalisation) to identify the most common refactor patterns for Phase 2.
+  - Consider a follow-up task to filter for `def → abbrev`-style changes specifically (for Phase 1 continuation).
