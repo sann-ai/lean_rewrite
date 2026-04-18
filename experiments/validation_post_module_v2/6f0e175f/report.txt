@@ -1,0 +1,22 @@
+SHA:                  6f0e175f892273701d35b762f6806eca862f229a
+Commit:               chore(Algebra/SkewPolynomial): make it an `abbrev` (#37863)
+File:                 Mathlib/Algebra/SkewPolynomial/Basic.lean
+remove_redundant_unfolds: no unfolds found
+
+Definition:             SkewPolynomial
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v2-6f0e175f-rp05mnzy/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v2-6f0e175f-rp05mnzy/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -1.08s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 6
+Proof LOC delta:        +0
+
+  Module: Mathlib.Algebra.SkewPolynomial.Basic
+    Both succeeded: True
+    Wall time delta:   -1.08s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: IMPROVED — patch accepted

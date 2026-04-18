@@ -604,3 +604,32 @@
 - Reading: Tier 1 is fully satisfied (T014: ACCEPTED, candidate.patch generated, builds OK). Tier 2 is the nearest unmet tier — the criterion requires ≥3 known mathlib refactor commits reproduced. T015/T018 ran 6 post-module records but none returned ACCEPTED (SkewPolynomial: metric gap; reverseRecOn: termination_by build failure; FiniteAdeleRing: wrong direction; 1627af05/a04c5481: build failures). T019 fixed the SkewPolynomial metric gap (instance_context_count signal) and T020 added a termination_by safety guard — but the validation records predate these fixes. Tier 3 requires a new transformation that demonstrably reduces downstream implementation dependency; T022/T023/T024 begin that work.
 - New tasks: T021..T024
 - Rationale: T021 re-runs validation on all 6 post-module records with the improved pipeline (T019+T020) — SkewPolynomial should now be ACCEPTED, which is progress toward Tier 2. T022 adds a broader implementation-dependency metric (show/change/projection counts) to evaluator.py, providing the numerical foundation Tier 3 requires. T023 implements the `@[simp]` auto-annotation transformer — a second transformation family that reduces downstream dependency (downstream can use `simp` instead of explicitly citing implementation details). T024 mines mathlib4 for concrete @[simp]-eligible defs that lack the attribute but have downstream unfold calls, supplying targets for the Tier 3 E2E run. Together T021 confirms/advances Tier 2, while T022–T024 lay the groundwork for Tier 3.
+
+## 2026-04-18T22:41:24Z — T021 — sXQLe9
+
+- Did:
+  - Created `scripts/validate_all_post_module_v2.py` — re-runs all 6 post-module cases with the improved pipeline (T019 instance_context_count + T020 has_termination_by guard).
+  - Ran it against all 6 entries in `data/refactor_commits_post_module.jsonl`.
+  - Saved 6 reports to `experiments/validation_post_module_v2/<sha8>/report.txt`.
+  - Created `experiments/validation_post_module_v2/README.md` with full 6-case summary.
+- Results:
+  - `6f0e175f` (SkewPolynomial): ACCEPTED — instance_context_count=6 ✓ (T019 fix working)
+  - `1627af05` (Q): REJECTED — both builds failed (before-state incompatible with HEAD context)
+  - `65590a2c` (reverseRecOn): SKIPPED_TERMINATION_BY — T020 guard correctly fired
+  - `6eabe6b2` (FiniteAdeleRing): BLOCKED — before-state is `abbrev` (abbrev→def direction commit; pipeline only handles def→abbrev)
+  - `f3acad5a` (runThe): REJECTED — builds OK but instance_ctx=0, unfold=0 (body also changed in historical commit: `cmd` → `cmd.run`; keyword swap alone insufficient)
+  - `a04c5481` (freeGroupEmptyEquivUnit): REJECTED — both builds failed
+  - **ACCEPTED: 1/6**
+- Learned:
+  - T019's instance_context_count fix correctly identified SkewPolynomial as ACCEPTED.
+  - T020's termination_by guard correctly skipped reverseRecOn.
+  - Tier 2 criterion (≥3 ACCEPTED) is NOT yet met with 1/6. Root causes: (a) build failures for before-states in wrong HEAD context, (b) reverse-direction commits (abbrev→def), (c) historical commits that also changed the body — pipeline's pure keyword swap is insufficient.
+  - To advance Tier 2, need either: better before-state reconstruction (checkout full commit parent context rather than HEAD worktree), or find more def→abbrev-only commits in mathlib.
+- Files touched:
+  - `scripts/validate_all_post_module_v2.py` (new)
+  - `experiments/validation_post_module_v2/` (6 report dirs, README.md)
+  - `TASKS.md` (T021 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - To reach Tier 2: extend dataset or fix before-state reconstruction strategy. One promising approach: checkout before-state in a worktree based on `sha^` (full worktree at parent commit) instead of overwriting a HEAD worktree with a single file.
+  - T022/T023/T024 are unblocked and target Tier 3 groundwork.

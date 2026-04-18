@@ -1,0 +1,22 @@
+SHA:                  1627af05b65dfa0a6fc3d42e32faf52b3576ba7c
+Commit:               chore: use abbrev in Archive/Sensitivity (#37011)
+File:                 Archive/Sensitivity.lean
+remove_redundant_unfolds: no unfolds found
+
+Definition:             Q
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v2-1627af05-cpv7f9cl/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v2-1627af05-cpv7f9cl/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 3
+Proof LOC delta:        +0
+
+  Module: Archive.Sensitivity
+    Both succeeded: False
+    Baseline FAILED (rc=1)
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

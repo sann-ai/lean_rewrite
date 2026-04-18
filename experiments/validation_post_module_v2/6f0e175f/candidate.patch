@@ -1,0 +1,11 @@
+--- a/Mathlib/Algebra/SkewPolynomial/Basic.lean
++++ b/Mathlib/Algebra/SkewPolynomial/Basic.lean
+@@ -76,7 +76,7 @@
+ 
+ /-- The skew polynomials over `R` is the type of univariate polynomials over `R`
+ endowed with a skewed convolution product. -/
+-def SkewPolynomial (R : Type*) [AddCommMonoid R] := SkewMonoidAlgebra R (Multiplicative ℕ)
++abbrev SkewPolynomial (R : Type*) [AddCommMonoid R] := SkewMonoidAlgebra R (Multiplicative ℕ)
+ 
+ namespace SkewPolynomial
+ variable {R : Type*}

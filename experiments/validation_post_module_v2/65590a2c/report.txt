@@ -1,0 +1,9 @@
+SHA:                  65590a2c4f789cfc771a7eac31cbda9660d72e5d
+Commit:               refactor(Data/List/Induction): improve definition of `reverseRecOn` (#33192)
+File:                 Mathlib/Data/List/Induction.lean
+Definition:           reverseRecOn
+All builds succeeded: False
+Baseline instance context count: N/A
+
+VERDICT: SKIPPED_TERMINATION_BY
+  Reason: reverseRecOn has a termination_by clause; abbrev conversion is not safe
