@@ -202,9 +202,9 @@
 
 ## T015 — post-module def→abbrev 検証: `validate_refactors_post_module.py` 実行
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: zv4RUw
+- claimed_at: 2026-04-18T20:44:26Z
 - 依存: T012, T014
 - 内容:
   `data/refactor_commits_post_module.jsonl`（4 件）を使って Tier 2 バリデーションを実行する。
