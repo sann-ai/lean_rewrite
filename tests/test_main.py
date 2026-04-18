@@ -396,3 +396,92 @@ def test_run_pipeline_without_remove_unfolds_leaves_downstream(mock_eval, mock_a
 
     assert seen_ds_content, "evaluate was never called"
     assert "unfold foo" in seen_ds_content[0]
+
+
+# ---------------------------------------------------------------------------
+# SKIPPED_TERMINATION_BY path
+# ---------------------------------------------------------------------------
+
+def test_run_pipeline_skips_termination_by(tmp_path: Path) -> None:
+    # A def with termination_by should produce SKIPPED_TERMINATION_BY verdict
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text(
+        "def reverseRecOn (n : Nat) : Nat := n\n"
+        "termination_by n\n"
+    )
+    result = run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="reverseRecOn",
+        downstream=["Foo"],
+    )
+    assert result == 1
+
+
+def test_run_pipeline_skips_termination_by_writes_report(tmp_path: Path) -> None:
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text(
+        "def reverseRecOn (n : Nat) : Nat := n\n"
+        "termination_by n\n"
+    )
+    out_dir = tmp_path / "out"
+    run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="reverseRecOn",
+        downstream=["Foo"],
+        output_dir=out_dir,
+    )
+    report = (out_dir / "report.txt").read_text()
+    assert "SKIPPED_TERMINATION_BY" in report
+    assert not (out_dir / "candidate.patch").exists()
+
+
+@patch("lean_rewrite.main._git_worktree_remove")
+@patch("lean_rewrite.main._git_worktree_add")
+@patch("lean_rewrite.main.evaluate")
+def test_run_pipeline_no_skip_without_termination_by(mock_eval, mock_add, mock_remove, tmp_path: Path) -> None:
+    # A def without termination_by should NOT be skipped — evaluate must be called
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text("def foo := 1\n")
+
+    def _side_add(mathlib, dest):
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "Foo.lean").write_text("")
+
+    mock_add.side_effect = _side_add
+
+    from lean_rewrite.evaluator import EvalResult, ModuleComparison, ModuleMetrics
+    from lean_rewrite.runner import BuildResult
+
+    def _make_br(success: bool) -> BuildResult:
+        return BuildResult(
+            module="Foo",
+            worktree=str(tmp_path),
+            command=["lake", "build", "Foo"],
+            returncode=0 if success else 1,
+            stdout="",
+            stderr="",
+            wall_time_sec=1.0,
+            timed_out=False,
+        )
+
+    mock_eval.return_value = EvalResult(
+        def_name="foo",
+        baseline_worktree=str(tmp_path),
+        candidate_worktree=str(tmp_path / "cand"),
+        comparisons=[
+            ModuleComparison(
+                module="Foo",
+                baseline=ModuleMetrics(module="Foo", build=_make_br(True), unfold_count=1, proof_loc=0),
+                candidate=ModuleMetrics(module="Foo", build=_make_br(True), unfold_count=1, proof_loc=0),
+            )
+        ],
+    )
+    run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="foo",
+        downstream=["Foo"],
+    )
+    mock_eval.assert_called_once()

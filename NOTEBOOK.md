@@ -562,3 +562,39 @@
 - Next steps:
   - T020 (safety guard: skip `termination_by` defs) is now unblocked.
   - After T020, a re-validation pass over all 6 post-module records with the improved metric would confirm Tier 2 (SkewPolynomial should now be ACCEPTED).
+
+## 2026-04-18T22:03:53Z — T020 — QRUeAN
+
+- Did:
+  - Added `has_termination_by(source, def_name) -> bool` to `src/lean_rewrite/candidates.py`.
+    Uses `_find_def` to locate the def block, then scans to the next top-level declaration
+    (using `_BLOCK_END_RE` — a regex that stops at column-0 lines starting a new decl keyword,
+    excluding `termination_by`/`decreasing_by` themselves). Strips `--` comments before checking.
+  - Updated `src/lean_rewrite/main.py`: imported `has_termination_by`; added early-exit in
+    `run_pipeline()` before `def_to_abbrev` — if the def has `termination_by`, returns 1 and
+    writes `VERDICT: SKIPPED_TERMINATION_BY` to `report.txt` (no worktree created).
+  - Added 7 tests in `tests/test_candidates.py` for `has_termination_by` (true/false/scoped to
+    named def/line comment/full-line comment/not-found/real reverseRecOn pattern).
+  - Added 3 tests in `tests/test_main.py` (skip returns 1, writes SKIPPED report, no patch;
+    non-termination_by def still calls evaluate).
+  - All 162 tests pass (up from 152).
+- Learned:
+  - `termination_by` can appear at column 0 (same as a new top-level declaration), so the
+    block-end regex must explicitly exclude `termination_by` and `decreasing_by` from the
+    stop condition.
+  - The `@[reducible]` fallback path in `def_to_abbrev` is also problematic for
+    `termination_by` defs (same build failure risk), so the guard fires before `def_to_abbrev`
+    regardless of whether the def is `noncomputable`.
+- Files touched:
+  - `src/lean_rewrite/candidates.py` (new `_BLOCK_END_RE`, `has_termination_by`)
+  - `src/lean_rewrite/main.py` (import + early-exit guard)
+  - `tests/test_candidates.py` (7 new tests, updated import)
+  - `tests/test_main.py` (3 new tests)
+  - `TASKS.md` (T020 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - No open tasks remain. Planning agent should assess Tier 2/3 completion and propose next tasks.
+  - Tier 2 re-validation with the improved metric (T019 instance_context signal) would confirm
+    that the SkewPolynomial case now passes. A full 6-record re-run is the logical next step.
+  - Tier 3: implement a transformation that reduces downstream implementation dependency beyond
+    def→abbrev (e.g. `@[simp]` auto-assignment + downstream `unfold` elimination).

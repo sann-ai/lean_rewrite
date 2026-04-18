@@ -196,6 +196,39 @@ def remove_redundant_unfolds(source: str, def_name: str) -> str:
     return source
 
 
+# Matches the start of a new top-level declaration at column 0 (after a newline).
+# Used to find the end of a def's block when scanning for termination_by.
+_BLOCK_END_RE = re.compile(
+    r"\n(?=(?:@\[|/--|"
+    r"(?:(?:private|protected|noncomputable|partial|unsafe)\s+)*"
+    r"(?:def|abbrev|theorem|lemma|instance|class|structure|inductive"
+    r"|section|namespace|end|open|variable|universe)\b))"
+)
+
+
+def has_termination_by(source: str, def_name: str) -> bool:
+    """Return True if the named def block contains a ``termination_by`` clause.
+
+    Scopes the search to the block of ``def_name`` only (stops at the next
+    top-level declaration). Comment lines are ignored.
+    """
+    try:
+        match = _find_def(source, def_name)
+    except DefNotFoundError:
+        return False
+
+    rest = source[match.def_kw_start:]
+    end_match = _BLOCK_END_RE.search(rest, len("def"))
+    block = rest[: end_match.start()] if end_match else rest
+
+    for line in block.splitlines():
+        # Strip inline and full-line comments before checking.
+        code = re.sub(r"--.*", "", line)
+        if re.search(r"\btermination_by\b", code):
+            return True
+    return False
+
+
 def _has_reducible_attr_directly_above(prefix: str) -> bool:
     """Return True if the last non-blank line of ``prefix`` is a ``@[reducible]``.
 

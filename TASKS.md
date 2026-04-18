@@ -294,9 +294,10 @@
 
 ## T020 — 安全ガード: `termination_by` を持つ def の abbrev 変換をスキップ
 
-- status: claimed
+- status: done
 - claimed_by: QRUeAN
 - claimed_at: 2026-04-18T21:59:30Z
+- done_at: 2026-04-18T22:03:53Z
 - 依存: T004
 - 内容:
   T015 で判明した問題: `reverseRecOn` のように `termination_by` 節を持つ def を `abbrev` に変換するとビルドが壊れる(候補ビルド失敗)。変換前にこれを検出してスキップすることで、pipeline の出力品質を上げる。

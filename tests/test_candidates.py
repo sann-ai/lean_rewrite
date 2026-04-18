@@ -1,10 +1,10 @@
-"""Tests for ``lean_rewrite.candidates.def_to_abbrev`` and ``remove_redundant_unfolds``."""
+"""Tests for ``lean_rewrite.candidates.def_to_abbrev``, ``remove_redundant_unfolds``, and ``has_termination_by``."""
 
 from __future__ import annotations
 
 import pytest
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, remove_redundant_unfolds
+from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, has_termination_by, remove_redundant_unfolds
 
 
 def test_basic_def_to_abbrev() -> None:
@@ -348,3 +348,67 @@ def test_nat_dist_all_16_unfolds_removed() -> None:
     out = remove_redundant_unfolds(src, "dist")
     assert "unfold Nat.dist" not in out
     assert "lia" in out
+
+
+# ---------------------------------------------------------------------------
+# has_termination_by tests
+# ---------------------------------------------------------------------------
+
+def test_has_termination_by_true() -> None:
+    src = (
+        "def reverseRecOn (n : Nat) : Nat := n\n"
+        "  termination_by n\n"
+    )
+    assert has_termination_by(src, "reverseRecOn") is True
+
+
+def test_has_termination_by_false_no_clause() -> None:
+    src = "def foo (x : Nat) : Nat := x + 1\n"
+    assert has_termination_by(src, "foo") is False
+
+
+def test_has_termination_by_scoped_to_named_def() -> None:
+    # termination_by is in bar, not foo — should return False for foo
+    src = (
+        "def foo := 1\n"
+        "\n"
+        "def bar (n : Nat) : Nat := n\n"
+        "  termination_by n\n"
+    )
+    assert has_termination_by(src, "foo") is False
+    assert has_termination_by(src, "bar") is True
+
+
+def test_has_termination_by_ignores_line_comment() -> None:
+    # termination_by appears only in a comment on the def line
+    src = "def foo := 1  -- termination_by ignored\n"
+    assert has_termination_by(src, "foo") is False
+
+
+def test_has_termination_by_ignores_full_line_comment() -> None:
+    src = (
+        "def foo (n : Nat) : Nat := n\n"
+        "  -- termination_by would go here but this is not real\n"
+    )
+    assert has_termination_by(src, "foo") is False
+
+
+def test_has_termination_by_not_found_def() -> None:
+    src = "def foo := 1\n"
+    assert has_termination_by(src, "missing") is False
+
+
+def test_has_termination_by_real_reverse_rec_on_pattern() -> None:
+    # Mimics a Lean 4 function with decreasing recursion
+    src = (
+        "def reverseRecOn {C : Nat → Sort u} (n : Nat) (ind0 : C n)\n"
+        "    (ind : ∀ m, m < n → C (m + 1) → C m) : C 0 :=\n"
+        "  match n with\n"
+        "  | 0 => ind0\n"
+        "  | n + 1 => ind n (Nat.lt_succ_self n) (reverseRecOn n ind0 ind)\n"
+        "termination_by n\n"
+        "\n"
+        "def nextDef := 2\n"
+    )
+    assert has_termination_by(src, "reverseRecOn") is True
+    assert has_termination_by(src, "nextDef") is False

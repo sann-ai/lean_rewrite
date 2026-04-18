@@ -20,7 +20,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, remove_redundant_unfolds
+from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, has_termination_by, remove_redundant_unfolds
 from lean_rewrite.evaluator import EvalResult, evaluate
 
 
@@ -143,6 +143,19 @@ def run_pipeline(
         return 2
 
     original_source = src_path.read_text(encoding="utf-8")
+
+    if has_termination_by(original_source, def_name):
+        report = (
+            f"Definition:             {def_name}\n"
+            f"VERDICT: SKIPPED_TERMINATION_BY\n"
+            f"  Reason: {def_name} has a termination_by clause; abbrev conversion is not safe\n"
+        )
+        print(report)
+        if output_dir is not None:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "report.txt").write_text(report, encoding="utf-8")
+        return 1
+
     try:
         candidate_source = def_to_abbrev(original_source, def_name)
     except DefNotFoundError as e:
