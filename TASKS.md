@@ -174,9 +174,9 @@
 
 ## T014 — 実 E2E run2: `--remove-unfolds` で Nat.dist を ACCEPTED にする
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: tGhiJP
+- claimed_at: 2026-04-18T19:44:45Z
 - 依存: T008, T009
 - 内容:
   T009 で `--remove-unfolds` フラグが実装されたが、実際の E2E 実行（実 mathlib ビルド）で ACCEPTED を得た記録がない。Tier 1 の「`is_improvement` が True で `candidate.patch` が生成されている」を確実に達成する。
