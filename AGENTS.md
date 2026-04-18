@@ -40,8 +40,13 @@ Read the following, in this order:
 1. `PLAN.md` — current phase and approach
 2. `TASKS.md` — find tasks with `status: open`
 3. The last ~80 lines of `NOTEBOOK.md` — see what recent agents did, avoid duplicating
+4. `QUESTIONS.md` — look for any tasks blocked on a question that has just been answered (see §"Asking for human input" for the protocol)
 
 When choosing a task, **respect its dependencies**. Each task has a `依存:` (dependencies) field listing other task IDs. Skip any task whose dependencies are not all `status: done`. For example, if `T005` has `依存: T003` and T003 is still `open` or `claimed`, do not claim T005 — pick a different task.
+
+If a task's status is `blocked: awaiting Q0NN`, check `QUESTIONS.md`:
+- If Q0NN has an `**Answer:**` filled in, treat the task as eligible to claim. Your claim commit should both (a) change the task's status back to `claimed` with your agent ID, and (b) reference the answered question in a NOTEBOOK entry so later readers can follow the reasoning.
+- If Q0NN is still unanswered, skip the task.
 
 ### 3. Claim a task (mandatory before any work)
 
@@ -104,6 +109,65 @@ End the session under any of the following:
 - Cannot make progress (record the blocker in `NOTEBOOK.md` and set `status: blocked: <reason>`)
 - 60 minutes elapsed (record the state as `status: blocked: timeout` and release the claim)
 - A decision point requires human judgment (set `status: blocked: needs human` and **stop**)
+
+## Asking for human input (`QUESTIONS.md`)
+
+If you hit a decision that genuinely needs the human operator's guidance AND can be answered in **1–2 sentences or a choice of options**, post the question to `QUESTIONS.md` instead of escalating to the heavier `blocked: needs human`.
+
+### When to ask vs decide yourself
+
+**Ask** for:
+- Direction-level questions that affect multiple future tasks ("should the algorithm prioritize X or Y?")
+- A choice between equally-defensible strategies with different downstream tradeoffs
+- Scope clarifications ("does X count as a valid signal for this metric?")
+- Questions whose answer the human almost certainly has cached ("do we care about backwards compatibility with Lean 3?")
+
+**Decide yourself** for:
+- Routine implementation choices (naming, test coverage, adding a docstring)
+- Questions that become clear on careful re-reading of `PLAN.md` / `AGENTS.md`
+- Things you can resolve empirically by trying (e.g. "does this build?")
+
+**At most one question per session.** If you have more, pick the most blocking and leave the rest for a follow-up session to raise. Prefer solving small things yourself over asking.
+
+### Question format (append to `QUESTIONS.md`)
+
+```
+## Q0NN — <short title> — <agent-id> — <UTC ISO>
+
+**Context**: 2–3 sentences of what you were doing
+**Question**: the specific thing you need answered
+**Options considered**:
+- A: <option>
+- B: <option>
+- (optional) C: ...
+**Blocker level**: low | medium | high
+**Associated task**: T0NN | planning | (empty)
+
+**Answer**:
+
+<!-- human to fill in -->
+```
+
+Continue the Q numbering from the highest existing `Q0NN` in the file.
+
+### After posting a question
+
+1. Change the associated task's status to `blocked: awaiting Q0NN` (if there is one).
+2. Append a short NOTEBOOK entry:
+   ```
+   ## <UTC ISO> — question posted — <agent-id>: Q0NN — <title>
+   ```
+3. Commit as `ask: Q0NN — <short title>`, push, and stop the session. The task is now in the hands of the human.
+
+### Looking for answered questions
+
+Step 2 of the main workflow directs you to read `QUESTIONS.md`. Before the main planning flow:
+- Tasks with `status: blocked: awaiting Q0NN` where Q0NN has an `**Answer:**` → eligible again. Claim and resume.
+- Questions without an `**Answer:**` → leave as-is; pick another task or enter planning (but do not re-ask the same question).
+
+### Asking as a planning agent
+
+A planning agent (see §"Planning when idle") may also post a question when the direction is genuinely unclear — for example, when multiple tiers have very different interpretations. Use the same format, `Associated task: planning`. Still cap at one question per session.
 
 ## Planning when idle
 
