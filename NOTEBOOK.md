@@ -130,3 +130,28 @@
 - Next steps:
   - T006 (E2E wiring) can now proceed. Input: `/Users/san/mathlib4`, `Mathlib/Data/Nat/Dist.lean`, `Nat.dist`. Downstream modules: `Mathlib.Data.Nat.Dist`, `Archive.Imo.Imo2024Q5`.
   - T002 (refactor-commit dataset) remains open and unblocked.
+
+## 2026-04-18T16:42:30Z — T006 — l4m3ai
+
+- やったこと:
+  - `src/lean_rewrite/main.py` を新規作成。T003/T004/T005 を配線する E2E パイプラインを実装。
+  - `run_pipeline(mathlib, target_file, def_name, downstream, *, timeout, lake, output_dir) → int` がメインロジック。フロー: (1) 対象ファイル読み込み → (2) `def_to_abbrev` で候補ソース生成 → (3) `git worktree add` でエフェメラルな候補ワークツリーを作成 → (4) 候補ソースを worktree に書き込み → (5) `evaluate` で baseline/candidate を比較 → (6) 判定・出力。
+  - `is_improvement(result)`: `all_succeeded AND total_unfold_count_delta < 0` を条件。unfold 削減を主判定基準とした(壁時計時間は揺らぎが大きく単独では信頼できないため)。
+  - `format_report()`: 全モジュールの比較結果と VERDICT を人間可読なテキストとして整形。
+  - `make_patch()`: `difflib.unified_diff` で unified diff を生成。
+  - CLI (`main()`) は argparse で `--mathlib / --file / --def-name / --downstream / --timeout / --lake / --output-dir` を受け付け、`sys.exit(run_pipeline(...))` で終了コードを返す。
+  - `tests/test_main.py` に 16 ケース追加: `is_improvement` 5件 / `make_patch` 2件 / `format_report` 3件 / `run_pipeline` mocked 6件。全 57 テスト pass (12.86s)。
+- わかったこと:
+  - `git worktree add` はディレクトリを自分で作成するため、`tempfile.mkdtemp()` で一段上のディレクトリを確保し `tmp_base/cand` をターゲットパスにする方式が最もクリーン。
+  - `_git_worktree_add` を mock する統合テストでは、mock がディレクトリを作らないため `side_effect` で必要なディレクトリ構造を再現する必要があった。
+  - 壁時計時間差は同一マシンでの比較でも揺らぎ ±20% 程度が予想されるため、改善判定の primary criterion には使わなかった。unfold_count_delta が 0 のケース(初めてのビルドで両者のソースが同一 worktree だと delta=0)でも `all_succeeded=True` かつ `delta=0` → REJECTED が正しく動くことをテストで確認。
+  - `Archive.Imo.Imo2024Q5` のビルドは時間がかかると T007 で指摘されており、実際の E2E 実行時には `--timeout` を長めに設定する必要がある。
+- 触ったファイル:
+  - `src/lean_rewrite/main.py` (新規)
+  - `tests/test_main.py` (新規)
+  - `TASKS.md` (T006 → done)
+  - `NOTEBOOK.md` (このエントリ)
+- 次のステップ:
+  - フェーズ1 MVP 完成。実際の E2E 実行例: `python -m lean_rewrite.main --mathlib /Users/san/mathlib4 --file Mathlib/Data/Nat/Dist.lean --def-name dist --downstream Mathlib.Data.Nat.Dist --timeout 300 --output-dir experiments/001/run1`
+  - T002 (refactor-commit データセット抽出) が残り唯一の open タスク。フェーズ1 の次フェーズ準備として進められる。
+  - elaboration 時間の正確な計測 (`set_option profiler true` 統合) は T005 のノートで指摘済み — 新タスクとして追加可能。

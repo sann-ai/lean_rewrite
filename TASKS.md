@@ -59,11 +59,13 @@
 
 ## T006 — エンドツーエンド MVP の配線
 
-- status: claimed
+- status: done
 - claimed_by: l4m3ai
 - claimed_at: 2026-04-18T16:39:15Z
+- done_at: 2026-04-18T16:42:30Z
 - 依存: T001, T003, T004, T005, T007
 - 内容: T003 + T004 + T005 を `src/lean_rewrite/main.py` に配線。入力: mathlib パス、対象ファイル、対象 def 名。出力: メトリクスが改善したら patch ファイル、しなかったら reject 理由レポート。
+- 結果: `src/lean_rewrite/main.py` を新規作成。`run_pipeline()` が `def_to_abbrev` → `git worktree add` → `evaluate` → 判定の順で実行。`is_improvement()` は `all_succeeded AND total_unfold_count_delta < 0` を条件とする。CLI は `--mathlib / --file / --def-name / --downstream / --timeout / --lake / --output-dir` を受け取る。`tests/test_main.py` に 16 ケースを追加、全 57 テスト pass。
 
 ## T007 — 最初の実例を選んで記録
 
