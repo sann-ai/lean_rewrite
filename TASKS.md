@@ -252,3 +252,56 @@
   3. 既存 4 件と重複排除した上で、新規エントリを `data/refactor_commits_post_module.jsonl` に追記（または全件再書き出し）。
   4. 走査件数・発見件数を NOTEBOOK に記録。
   受け入れ基準: スクリプトが完走し、NOTEBOOK に走査件数・追加発見件数が記録されていること。追加が 0 件でも観察結果として記録（blocked 不要）。`data/refactor_commits_post_module.jsonl` が重複なく更新されていること。
+
+## T018 — post-module 新規 2 件 (f3acad5a, a04c5481) の Tier 2 バリデーション
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T015, T017
+- 内容:
+  T017 で追加された 2 件 (`f3acad5a`: runThe in Writer.lean, `a04c5481`: freeGroupEmptyEquivUnit in FreeGroup/Basic.lean) を pipeline に通し、Tier 2 バリデーションを完成させる。
+  手順:
+  1. `scripts/validate_refactors_post_module.py` を実行(またはそれを参考に同等のスクリプトをセッション内で書く)。対象を 2 件のみに絞り込んで実行してもよい。
+     - 各エントリで `git show sha^:<file>` で before 状態ファイルを取得し、mathlib HEAD の worktree に上書き
+     - `run_pipeline()` を `remove_unfolds=True` で呼ぶ
+     - 結果を `experiments/validation_post_module/<sha8>/report.txt` に保存
+  2. `experiments/validation_post_module/README.md` を更新して 6 件全体の結果サマリを記述。
+  3. worktree は後片付けする。
+  受け入れ基準: `experiments/validation_post_module/` に `f3acad5a` / `a04c5481` 各 sha8 プレフィックスのサブディレクトリが存在し、各レポートに `All builds succeeded:` 行と `VERDICT:` 行がある。
+
+## T019 — `is_improvement()` 拡張: typeclass 合成シグナルを追加
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T008, T005
+- 内容:
+  T015 で判明した問題: `SkewPolynomial` のような typeclass-heavy な定義では `def → abbrev` 変換が有効な改善であっても、下流に明示的な `unfold` 呼び出しがなく `is_improvement()` が REJECTED を返す。実際の mathlib コミット (6f0e175f) では `abbrev` 化が採用されており、pipeline がこれを検出できないのはメトリクスの欠落。
+  実装:
+  1. `src/lean_rewrite/evaluator.py` の `ModuleMetrics` / `ModuleComparison` / `EvalResult` に `instance_context_count: int` フィールドを追加。
+     定義: 下流モジュールのソースファイル内で `instance` または `deriving` キーワードと `def_name` が同一行に現れる行数の合計 (baseline 時点でカウント)。
+     例: `instance : Add SkewPolynomial := ...` の行がある場合 count=1。
+  2. `src/lean_rewrite/main.py` の `is_improvement()` ロジックを更新:
+     現行: `all_succeeded AND (unfold_delta < 0 OR baseline_unfold > 0)`
+     新: `all_succeeded AND (unfold_delta < 0 OR baseline_unfold > 0 OR baseline_instance_context > 0)`
+  3. `format_report()` に `Baseline instance context count: N` 行を追加。
+  4. `tests/test_evaluator.py` と `tests/test_main.py` に新フィールド・新条件のユニットテスト追加。
+     最低テスト: (a) `instance_context_count` が正しくカウントされること、(b) `baseline_instance_context=1` で `is_improvement=True` になること、(c) 全既存テストがパスすること。
+  受け入れ基準: 全既存テストがパス、新テスト 3 件以上パス。SkewPolynomial ケースを再現した mocked テストで `is_improvement=True` を確認。
+
+## T020 — 安全ガード: `termination_by` を持つ def の abbrev 変換をスキップ
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T004
+- 内容:
+  T015 で判明した問題: `reverseRecOn` のように `termination_by` 節を持つ def を `abbrev` に変換するとビルドが壊れる(候補ビルド失敗)。変換前にこれを検出してスキップすることで、pipeline の出力品質を上げる。
+  実装:
+  1. `src/lean_rewrite/candidates.py` に `has_termination_by(source: str, def_name: str) -> bool` を追加。
+     ロジック: def_name に対応する def ブロック内に `termination_by` キーワードが現れるか検索。既存の `def_to_abbrev` が def ブロックを特定するロジックを再利用してよい。
+  2. `src/lean_rewrite/main.py` の `run_pipeline()` 内で `def_to_abbrev` を呼ぶ前に `has_termination_by` をチェック。検出した場合は変換を行わず verdict として `SKIPPED_TERMINATION_BY` を記録し、`report.txt` に出力して早期リターンする。
+  3. `tests/test_candidates.py` に `has_termination_by` のテスト追加(最低 4 ケース: termination_by あり・なし・別定義・コメント内は無視)。
+  4. `tests/test_main.py` に `SKIPPED_TERMINATION_BY` 経路のモックテスト追加。
+  受け入れ基準: 全既存テストがパス、新テスト 4 件以上パス。`reverseRecOn` のような `termination_by` を含む def ソースに対して `has_termination_by` が True を返すこと。

@@ -491,3 +491,9 @@
   - Tier 2 validation now has 6 records (previously 4). T015 already ran validation on the original 4 — consider running validation on the 2 new entries (`f3acad5a`, `a04c5481`) to see if they yield ACCEPTED results.
   - Tier 3 work: the SkewPolynomial case (T015) shows a metric gap — typeclass synthesis improvements from `abbrev` are invisible to the current `unfold`-count metric. Adding a typeclass/simp signal would improve coverage.
   - `docs`/`ci`/`test` prefixes not yet scanned; if more data is needed, those are next candidates.
+
+## 2026-04-18T21:16:12Z — planning — uJeBvu
+- Trigger: TASKS.md had zero eligible open tasks (T001–T017 all done).
+- Reading: Tier 1 is fully satisfied (T014: ACCEPTED, candidate.patch generated, builds OK). Tier 2 is the nearest unmet tier — need ≥3 known mathlib refactor commits reproduced by the pipeline. T015 ran 4 post-module records: 0 ACCEPTED (SkewPolynomial REJECTED due to unfold=0 metric gap; Q build failed; reverseRecOn candidate build failed due to termination_by; FiniteAdeleRing wrong direction). T017 added 2 new records (f3acad5a: runThe, a04c5481: freeGroupEmptyEquivUnit) that have not yet been validated.
+- New tasks: T018..T020
+- Rationale: T018 validates the 2 new records immediately — if either yields ACCEPTED, Tier 2 progress improves. T019 fixes the SkewPolynomial metric gap by adding a typeclass-synthesis signal (`instance`/`deriving` context count in downstream) to `is_improvement()`; this is also a step toward Tier 3's "reduce implementation dependency" principle (typeclass synthesis makes downstream independent of the def's internal structure). T020 adds a safety heuristic that skips `termination_by` defs before attempting abbrev conversion, preventing the reverseRecOn-class build failures. Together T018+T019+T020 set up a cleaner re-validation pass (the follow-up planning round after these 3 are done can propose the full 6-record re-run as a Tier 2 confirmation task).
