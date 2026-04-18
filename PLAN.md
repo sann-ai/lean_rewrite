@@ -57,6 +57,25 @@ mathlib4 の Lean 4 定義を自動で書き換え、下流の証明を扱いや
 - mathlib4 の `AlgebraicGeometry.Scheme` の git 履歴を ground truth にエージェントを評価
 - 「人間の refactor を再発見できるか」を指標に
 
+## モジュール契約 (実装済み)
+
+後続タスクがこれらを呼び出すときの仕様。変更する場合は PLAN.md も同時に更新すること。
+
+### `lean_rewrite.runner.run_lake_build(worktree, module, *, timeout, lake, extra_args)` (T003)
+
+- `subprocess.run` で `lake build <module>` を実行し、frozen dataclass `BuildResult` を返す
+- フィールド: `module`, `worktree`, `command`, `returncode`, `stdout`, `stderr`, `wall_time_sec`, `timed_out`、および `success` プロパティ
+- **ビルド失敗では raise しない** — `returncode != 0` で通知
+- タイムアウトは `BuildResult(timed_out=True, returncode=-1, ...)` を返す(raise しない)
+- `WorktreeNotFoundError` / `LakeNotFoundError` は **セットアップ不備のときのみ** raise
+
+### `lean_rewrite.candidates.def_to_abbrev(source, def_name)` (T004)
+
+- 文字列として受け取った Lean ソース内の、指定名の top-level `def` を書き換えて新しい文字列を返す
+- 指定名の `def` が見つからなければ `DefNotFoundError` を raise
+- `noncomputable` / `partial` は `abbrev` にできないため、ヘッダ直前に `@[reducible]` を同インデントで挿入するフォールバックに切り替わる
+- アトリビュート (`@[...]`)、doc コメント (`/-- ... -/`)、modifier (`protected` / `private` / `noncomputable` / `partial` / `unsafe`)、ユニバース変数 (`.{u}`, `Sort*`)、複数行バインダを保持する
+
 ## 未解決の設計論点 (人間の判断が必要)
 
 以下はエージェント単独で決めないこと。ブロックして人間に委ねる:

@@ -14,24 +14,24 @@ When you are invoked (likely by a scheduled trigger), your session must be self-
 
 Always start from a clean, up-to-date state. If a local clone already exists, update it; otherwise clone first:
 
-```bash
-REPO=/Users/san/lean_rewrite
-if [ ! -d "$REPO/.git" ]; then
-  git clone https://github.com/sann-ai/lean_rewrite.git "$REPO"
-fi
-cd "$REPO"
-git fetch origin
-git checkout main
-git pull --rebase origin main
-```
-
-Because multiple agents may run in parallel, prefer operating in a dedicated worktree to avoid state contamination:
+**Every session must work inside its own isolated clone.** Never modify the main checkout at `/Users/san/lean_rewrite` directly — that is the human operator's working copy.
 
 ```bash
-WT=$(mktemp -d -t lr-XXXXXX)
-git worktree add "$WT" main
-cd "$WT"
+SESSION=$(mktemp -d -t lr-agent-XXXXXX)
+git clone https://github.com/sann-ai/lean_rewrite.git "$SESSION"
+cd "$SESSION"
+git config user.email "sann-ai@users.noreply.github.com"
+git config user.name "sann-ai"
 ```
+
+The session clone is small (~a few MB) and the clone completes in a few seconds. At the very end of the session — after your last successful push — clean it up:
+
+```bash
+cd /tmp  # or anywhere outside $SESSION
+rm -rf "$SESSION"
+```
+
+If you have to bail out early due to an error, leave the session directory in place so the human operator can inspect it.
 
 ### 2. Read state
 
@@ -60,7 +60,7 @@ You must claim your task **atomically via git** before doing any real work. Do n
    - If your task is still `open`, re-apply the edit and push again
    - If someone else has claimed it, pick a different task and start over
 
-**Claims expire after 90 minutes without progress.** If you find an older claim, you may reclaim it, but record it in `NOTEBOOK.md` as `Re-claimed stale task <id> (previously <old-agent>)`.
+**Claims expire after 90 minutes without progress.** Here, *progress* means any commit on `origin/main` authored by the claim holder's agent ID (including a small `NOTEBOOK.md` status update). The 90-minute clock resets at the most recent such commit. If your task is expected to run longer than 90 minutes, push an incremental `NOTEBOOK.md` note every ~45 minutes. If you find an expired claim, you may reclaim it, but record it in `NOTEBOOK.md` as `Re-claimed stale task <id> (previously <old-agent>)`.
 
 ### 4. Work
 
@@ -110,7 +110,7 @@ End the session under any of the following:
 - **Commit messages**:
   - Claim: `claim: <task-id> by <agent-id>`
   - Work: `<task-id>: <short imperative>`
-  - Completion: `done: <task-id>`
+  - Completion: `done: <task-id>: <short summary>` (subject line ≤72 chars; longer details go in a multi-line body after a blank line)
 - **One task per session.** Never hold multiple tasks at once.
 - When in doubt, do not change anything — leave a note in `NOTEBOOK.md` and stop.
 - All timestamps must be **actual UTC**, not your local timezone with a `Z` suffix. Run `date -u +%Y-%m-%dT%H:%M:%SZ` in a shell to get a correct value (e.g. `2026-04-18T14:30:00Z`). Do not compute UTC from local time mentally — the offset is easy to get wrong.
