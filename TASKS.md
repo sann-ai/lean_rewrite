@@ -425,9 +425,9 @@
 
 ## T026 — Tier 3 第2実例: Nat.divMaxPow に simp-attr E2E を適用して2件目の Tier 3 検証
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: Y2fs1E
+- claimed_at: 2026-04-18T23:59:35Z
 - 依存: T025
 - 内容:
   T025 の simp-attr E2E を別の候補(`Nat.divMaxPow`)に対して繰り返し、Tier 3 の「最低 1 変換族で E2E 検証」を複数実例で補強する。
