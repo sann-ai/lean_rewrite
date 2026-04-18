@@ -311,9 +311,9 @@
 
 ## T021 — Tier 2 再バリデーション: 改良パイプライン(T019+T020 適用)で全 6 件を再実行
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: sXQLe9
+- claimed_at: 2026-04-18T22:29:41Z
 - 依存: T019, T020
 - 内容:
   T019(instance_context_count シグナル追加)と T020(termination_by スキップ)が完了したが、バリデーション記録(experiments/validation_post_module/)は旧パイプラインで生成されたもの。Tier 2 の「既知 3 件以上を再現」を確定させるために、6 件全体を改良済みパイプラインで再実行する。
