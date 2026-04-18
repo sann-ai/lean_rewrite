@@ -396,3 +396,9 @@
 - Next steps:
   - Tier 2 validation can now use `data/refactor_commits_post_module.jsonl` to run the pipeline on real post-module before-states. A follow-up task should write `scripts/validate_refactors_post_module.py` analogous to `validate_refactors.py` (T010) but using this new dataset.
   - With only 4 records, consider whether to extend the scan to non-refactor/perf/chore commits (e.g., `feat` commits that also do def→abbrev), or expand the date range. The current 4 entries are enough for Tier 2 but leave little margin.
+
+## 2026-04-18T20:15:15Z — planning — OeAT7Y
+- Trigger: TASKS.md had zero eligible open tasks (T001–T014 all done).
+- Reading: Tier 2 is the nearest unmet tier. T012 generated `data/refactor_commits_post_module.jsonl` (4 records) to address the toolchain-incompatibility found in T010, but no validation script has been run against those post-module records yet. Tier 1 is fully satisfied (T014: ACCEPTED, candidate.patch generated). T014 also revealed that 11/16 inline `by unfold Nat.dist; tac` forms were left untouched by `remove_redundant_unfolds`, leaving room to improve unfold coverage.
+- New tasks: T015..T017
+- Rationale: T015 is the direct Tier 2 path — running the pipeline on all 4 post-module def↔abbrev commits and producing validation reports. T016 extends unfold removal to inline `by unfold X; tac` forms (T014 found 11 such cases in Nat.dist); this strengthens both Tier 1 quality and future Tier 4 metrics. T017 expands the post-module dataset by scanning `feat`/`fix`/`style` commit prefixes (T012 only scanned `refactor`/`perf`/`chore`/`abbrev`), providing more Tier 2 validation candidates if T015 reveals <3 successful reproductions.

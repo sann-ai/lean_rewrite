@@ -199,3 +199,53 @@
   3. `experiments/001/run2/candidate.patch` が存在することを確認。
   4. ビルドが失敗・タイムアウトする場合は失敗ログを `experiments/001/run2/error.txt` に保存し、status を `blocked: <理由>` にして NOTEBOOK に記録。
   受け入れ基準: `experiments/001/run2/report.txt` が存在し `VERDICT: ACCEPTED` を含む。ビルドが通らない場合は blocked で記録し次エージェントへ引き継ぐ。
+
+## T015 — post-module def→abbrev 検証: `validate_refactors_post_module.py` 実行
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T012, T014
+- 内容:
+  `data/refactor_commits_post_module.jsonl`（4 件）を使って Tier 2 バリデーションを実行する。
+  手順:
+  1. `scripts/validate_refactors_post_module.py` を新規作成。`scripts/validate_refactors.py`（T010）と同構造だが、`data/refactor_commits_post_module.jsonl` を入力とする。各エントリに対して:
+     - 対象 SHA の親（`sha^`）時点の mathlib4 一時 worktree を `git worktree add` で作成
+     - `git show sha^:<file>` で before 状態のファイルを worktree に書き戻す
+     - `run_pipeline()` を `remove_unfolds=True` で呼ぶ
+     - 結果を `experiments/validation_post_module/<sha8>/report.txt` に保存
+  2. `experiments/validation_post_module/README.md` に 4 件の結果サマリを記述（SHA・def 名・verdict・builds succeeded）。
+  3. worktree は `git worktree remove --force` で後片付けする。
+  受け入れ基準: `experiments/validation_post_module/` に 4 件のレポートが存在し、各レポートに `All builds succeeded:` 行と `VERDICT:` 行がある。少なくとも 1 件が `ACCEPTED` でなくてもよいが、ビルド失敗は明示的に記録する。
+
+## T016 — inline `by unfold X; tac` 形式の除去: `remove_redundant_unfolds` 拡張
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T009, T014
+- 内容:
+  T014 で判明した問題: `remove_redundant_unfolds` は行頭の `unfold X` や `unfold X; tac` スタンドアロン行のみ処理し、`theorem ... := by unfold X; tac` のようなインライン形式（`by` ブロック内で unfold が最初のタクティク）は除去できない。`Nat.dist` では 11 件のインライン unfold が残っている。
+  実装:
+  1. `src/lean_rewrite/candidates.py` の `remove_redundant_unfolds(source, def_name)` を拡張。新パターン:
+     - インライン `by unfold X\n` → `by\n` (次行のタクティクに続く)
+     - `by unfold X; tac` → `by tac` (unfold のみ除去し残りタクティクを保持)
+     - `by unfold X` 単独行末の場合は行全体から `unfold X` 部分を除去
+     注意: `def_name` の完全修飾形（`Nat.dist` など）も一致させること（既存の `(?:\w+\.)*` パターン再利用）
+  2. `tests/test_candidates.py` に追加: インライン by unfold 除去（最低 5 ケース: `by unfold X; lia`、`by unfold X\n  lia`、`by unfold X` 単体、複数タクティク、別定義は触らない）
+  受け入れ基準: 全既存テストパス、新テスト 5 件以上パス。`Nat.dist` の 16 件中インライン 11 件も除去できること（実際のコード確認 or 文字列テストで）。
+
+## T017 — post-module データセット拡張: より広い commit prefix で def↔abbrev を走査
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T012
+- 内容:
+  T012 では `refactor`/`perf`/`chore`/`abbrev` で始まるコミットしか走査せず、4 件のみ発見。`feat`/`fix`/`style`/`docs` で始まるコミットを追加走査して、より多くの post-module def↔abbrev 事例を発見する。
+  手順:
+  1. `scripts/fetch_refactor_commits_post_module.py` に `--extra-prefixes` オプションを追加（デフォルト: `feat,fix,style`）。または既存スクリプトをそのまま拡張して 3 つのプレフィックスを追加走査してもよい。
+  2. SHA `6a54a80825` 以降、追加プレフィックスで始まるコミットを対象に同フィルタ（def↔abbrev、単一ファイル内で 1 ブロック変更）を適用。
+  3. 既存 4 件と重複排除した上で、新規エントリを `data/refactor_commits_post_module.jsonl` に追記（または全件再書き出し）。
+  4. 走査件数・発見件数を NOTEBOOK に記録。
+  受け入れ基準: スクリプトが完走し、NOTEBOOK に走査件数・追加発見件数が記録されていること。追加が 0 件でも観察結果として記録（blocked 不要）。`data/refactor_commits_post_module.jsonl` が重複なく更新されていること。
