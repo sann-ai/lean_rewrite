@@ -59,3 +59,29 @@
   - `TASKS.md` (T004 をクレーム→done)
   - `NOTEBOOK.md` (このエントリ)
 - 次のステップ: T003 (runner.py) は T004 と同じ `src/lean_rewrite/` レイアウトに追加できる。T006 (E2E 配線) が T003/T004/T005/T007 の統合を担うので、次に動く agent は T003 か T007 あたりを優先すると MVP に近づく。
+
+## 2026-04-18T14:39:02Z — T003 — jpjwg4
+
+- やったこと:
+  - `src/lean_rewrite/runner.py` を新規作成。`run_lake_build(worktree, module, *, timeout=None, lake="lake", extra_args=())` と、凍結 `@dataclass` の `BuildResult` (`module`, `worktree`, `command`, `returncode`, `stdout`, `stderr`, `wall_time_sec`, `timed_out`, プロパティ `success`) を実装。例外クラスとして `WorktreeNotFoundError` (ワークツリー不在) と `LakeNotFoundError` (`lake` バイナリ不在) を提供。
+  - 実装方針: `subprocess.run(cmd, cwd=worktree, capture_output=True, text=True, timeout=timeout, check=False)`。`TimeoutExpired` を捕まえ、途中までの stdout/stderr を拾って `timed_out=True`, `returncode=-1` で `BuildResult` を返す。ビルド失敗では例外を投げず呼び出し側に判定を委ねる(`success` プロパティ)。
+  - `tests/test_runner.py` を新規作成、4 ケース:
+    1. happy path: `/Users/san/mathlib4` の `Mathlib.Logic.Basic` をビルドして `success=True`, `returncode==0`, `timed_out=False`, `wall_time_sec < 120`。
+    2. failure path: 存在しないモジュール名で `success=False`, `returncode!=0`, stdout/stderr に診断テキストあり。
+    3. `WorktreeNotFoundError`: 不在パスで `lake` を呼ぶ前に早期 raise。
+    4. `LakeNotFoundError`: 存在しない lake バイナリパスで raise。
+  - ローカルのキャッシュ済み mathlib ではケース 1 が約 1.5s で成功。4 ケース合計 5.52s で pass。全体 (25 ケース) も 3.65s で green。
+  - `Mathlib.Logic.Basic` の手動ビルドも 4.6s で成功確認。
+- わかったこと:
+  - mathlib キャッシュがあるとき `lake build Mathlib.Logic.Basic` は数秒で帰ってくるので、runner 側のタイムアウトは 60〜120s で十分。evaluator では downstream モジュール次第でもっと長めに要る可能性あり。
+  - `subprocess.TimeoutExpired.stdout/stderr` は `bytes` か `None` になりうる(`text=True` でも)ため、デコードは `isinstance` 分岐が安全。
+  - `FileNotFoundError` は lake バイナリが `PATH` になかったとき OS 側で raise される。ユーザー向けのメッセージに変換するため `LakeNotFoundError` でラップして再 raise。
+  - `subprocess.run(check=False)` にすると、ビルド失敗 (unknown module など) で `CalledProcessError` を投げず、呼び出し側が returncode を見るフローに統一できる。T005 (evaluator) で baseline と候補を両方ビルドして比較する際に例外じゃなく値で扱えるほうが書きやすい。
+  - Python 3.14 環境。`from __future__ import annotations` を付けて型ヒントを文字列化しておけば、ランタイム側の `|` や `tuple[str, ...]` はすでに 3.11 以降でサポートされているので問題なし。
+- 触ったファイル:
+  - `src/lean_rewrite/runner.py` (新規)
+  - `tests/test_runner.py` (新規)
+  - `TASKS.md` (T003 をクレーム→done)
+  - `NOTEBOOK.md` (このエントリ)
+- 次のステップ: T005 (evaluator) が `runner.run_lake_build` をそのまま使える。T006 (E2E 配線) は T005 と T007 待ち。T002 (refactor-commit 抽出) も依然 open で T001 のみに依存しているので並列に進められる。
+

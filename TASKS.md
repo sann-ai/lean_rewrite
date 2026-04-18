@@ -26,11 +26,13 @@
 
 ## T003 — Lean runner ラッパ (Python)
 
-- status: claimed
+- status: done
 - claimed_by: jpjwg4
 - claimed_at: 2026-04-18T14:37:42Z
+- done_at: 2026-04-18T14:39:02Z
 - 依存: なし(T001 の完了後に実動作確認可)
 - 内容: `src/lean_rewrite/runner.py` を実装。mathlib worktree のパスとモジュール名を受け取り、`lake build <module>` を実行し、stdout / stderr / 終了コード / 壁時計時間を構造化して返す。タイムアウト対応必須。pytest で成功・失敗の簡単なケースを追加。
+- 結果: `src/lean_rewrite/runner.py` に `run_lake_build` と `BuildResult` データクラス、`WorktreeNotFoundError` / `LakeNotFoundError` を実装。`subprocess.run(..., timeout=...)` を使用し、`TimeoutExpired` を捕捉して `timed_out=True` / `returncode=-1` を返すフォールバック付き。`tests/test_runner.py` に 4 ケース (real mathlib `Mathlib.Logic.Basic` 成功 / 存在しないモジュールの失敗 / 不在 worktree で `WorktreeNotFoundError` / 存在しない lake バイナリで `LakeNotFoundError`) を追加、全パス (5.52s)。
 
 ## T004 — `def → abbrev` 候補ジェネレータ
 
