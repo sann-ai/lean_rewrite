@@ -133,6 +133,14 @@ def _module_to_path(worktree: Path, module: str) -> Path:
     return worktree.joinpath(*parts).with_suffix(".lean")
 
 
+def _inject_profiler_option(worktree: Path, module: str) -> None:
+    """Prepend ``set_option profiler true`` to the module file if it exists."""
+    path = _module_to_path(worktree, module)
+    if path.exists():
+        original = path.read_text(encoding="utf-8")
+        path.write_text("set_option profiler true\n" + original, encoding="utf-8")
+
+
 def _count_unfolds(source: str, def_name: str) -> int:
     """Count `unfold <def_name>` tactic occurrences in Lean source text."""
     if not def_name:
@@ -178,6 +186,7 @@ def evaluate(
     *,
     timeout: float | None = None,
     lake: str = "lake",
+    inject_profiler: bool = False,
 ) -> EvalResult:
     """Compare baseline and candidate worktree builds for downstream modules.
 
@@ -206,6 +215,9 @@ def evaluate(
 
     comparisons: list[ModuleComparison] = []
     for module in modules:
+        if inject_profiler:
+            _inject_profiler_option(bwt, module)
+            _inject_profiler_option(cwt, module)
         base_build = run_lake_build(bwt, module, timeout=timeout, lake=lake)
         cand_build = run_lake_build(cwt, module, timeout=timeout, lake=lake)
         comparisons.append(

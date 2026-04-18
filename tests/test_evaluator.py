@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -18,6 +19,7 @@ from lean_rewrite.evaluator import (
     ModuleComparison,
     ModuleMetrics,
     _count_unfolds,
+    _inject_profiler_option,
     _module_to_path,
     _parse_elaboration_times,
     _proof_loc,
@@ -343,3 +345,82 @@ def test_evaluate_bad_module_not_succeeded() -> None:
     assert len(result.comparisons) == 1
     assert result.comparisons[0].both_succeeded is False
     assert result.all_succeeded is False
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for _inject_profiler_option and inject_profiler parameter
+# ---------------------------------------------------------------------------
+
+
+def _fake_build_result(worktree: Path, module: str) -> "BuildResult":
+    from lean_rewrite.runner import BuildResult
+    return BuildResult(
+        module=module,
+        worktree=worktree,
+        command=("lake", "build", module),
+        returncode=0,
+        stdout="",
+        stderr="",
+        wall_time_sec=1.0,
+        timed_out=False,
+    )
+
+
+def test_inject_profiler_option_prepends_to_existing_file(tmp_path: Path) -> None:
+    """_inject_profiler_option prepends 'set_option profiler true' to an existing file."""
+    (tmp_path / "Foo").mkdir()
+    lean_file = tmp_path / "Foo" / "Bar.lean"
+    lean_file.write_text("def x := 1\n", encoding="utf-8")
+
+    _inject_profiler_option(tmp_path, "Foo.Bar")
+
+    content = lean_file.read_text(encoding="utf-8")
+    assert content == "set_option profiler true\ndef x := 1\n"
+
+
+def test_inject_profiler_option_nonexistent_file_is_silent(tmp_path: Path) -> None:
+    """_inject_profiler_option does nothing when the module file does not exist."""
+    _inject_profiler_option(tmp_path, "Foo.DoesNotExist")  # must not raise
+
+
+def test_evaluate_inject_profiler_true_inserts_option(tmp_path: Path) -> None:
+    """evaluate(inject_profiler=True) inserts profiler option in both worktree files."""
+    bwt = tmp_path / "baseline"
+    cwt = tmp_path / "candidate"
+    original = "def x := 1\n"
+    for wt in (bwt, cwt):
+        (wt / "Foo").mkdir(parents=True)
+        (wt / "Foo" / "Bar.lean").write_text(original, encoding="utf-8")
+
+    captured: dict[str, str] = {}
+
+    def mock_build(worktree, module, **kwargs):
+        path = Path(worktree) / "Foo" / "Bar.lean"
+        captured[str(worktree)] = path.read_text(encoding="utf-8")
+        return _fake_build_result(Path(worktree), module)
+
+    with patch("lean_rewrite.evaluator.run_lake_build", side_effect=mock_build):
+        evaluate(bwt, cwt, ["Foo.Bar"], inject_profiler=True)
+
+    assert len(captured) == 2
+    for content in captured.values():
+        assert content.startswith("set_option profiler true\n")
+
+
+def test_evaluate_inject_profiler_false_leaves_files_unchanged(tmp_path: Path) -> None:
+    """evaluate(inject_profiler=False) does not modify module files."""
+    bwt = tmp_path / "baseline"
+    cwt = tmp_path / "candidate"
+    original = "def x := 1\n"
+    for wt in (bwt, cwt):
+        (wt / "Foo").mkdir(parents=True)
+        (wt / "Foo" / "Bar.lean").write_text(original, encoding="utf-8")
+
+    def mock_build(worktree, module, **kwargs):
+        return _fake_build_result(Path(worktree), module)
+
+    with patch("lean_rewrite.evaluator.run_lake_build", side_effect=mock_build):
+        evaluate(bwt, cwt, ["Foo.Bar"], inject_profiler=False)
+
+    for wt in (bwt, cwt):
+        assert (wt / "Foo" / "Bar.lean").read_text(encoding="utf-8") == original

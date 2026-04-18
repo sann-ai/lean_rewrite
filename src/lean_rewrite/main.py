@@ -129,6 +129,7 @@ def run_pipeline(
     lake: str = "lake",
     output_dir: Path | None = None,
     remove_unfolds: bool = False,
+    inject_profiler: bool = False,
 ) -> int:
     """Run the full pipeline. Returns 0 on improvement, 1 on reject, 2 on error."""
     src_path = mathlib / target_file
@@ -171,6 +172,7 @@ def run_pipeline(
             def_name=def_name,
             timeout=timeout,
             lake=lake,
+            inject_profiler=inject_profiler,
         )
 
         improved = is_improvement(result)
@@ -223,6 +225,10 @@ def main() -> None:
         "--remove-unfolds", action="store_true", default=False,
         help="Also remove redundant `unfold <def-name>` calls from downstream files"
     )
+    parser.add_argument(
+        "--inject-profiler", action="store_true", default=False,
+        help="Prepend `set_option profiler true` to module files before building"
+    )
 
     args = parser.parse_args()
     sys.exit(
@@ -235,6 +241,7 @@ def main() -> None:
             lake=args.lake,
             output_dir=args.output_dir,
             remove_unfolds=args.remove_unfolds,
+            inject_profiler=args.inject_profiler,
         )
     )
 

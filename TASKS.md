@@ -158,9 +158,10 @@
 
 ## T013 — evaluator: `set_option profiler true` 自動注入
 
-- status: claimed
+- status: done
 - claimed_by: IdYLJ8
 - claimed_at: 2026-04-18T19:29:43Z
+- done_at: 2026-04-18T19:33:02Z
 - 依存: T011
 - 内容:
   T011 では `_parse_elaboration_times` パーサを実装したが、実際に profiler 出力を得るには対象 Lean ファイルに `set_option profiler true` が必要。現状は手動でソースに書かないと `elaboration_time_sec` が常に None になる。

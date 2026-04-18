@@ -303,6 +303,28 @@
   - With reliable elaboration-time data, revisit `is_improvement()` to use it as a secondary signal alongside unfold count.
   - All Tier 1 criteria now more firmly in place. Tier 2 needs post-Dec-2024 mathlib dataset; T010 found the current `data/refactor_commits.jsonl` is incompatible with the current toolchain.
 
+## 2026-04-18T19:33:02Z — T013 — IdYLJ8
+
+- Did:
+  - Added `_inject_profiler_option(worktree: Path, module: str) -> None` to `src/lean_rewrite/evaluator.py`. Prepends `set_option profiler true\n` to the module's `.lean` file in the worktree if it exists; silently ignores non-existent files.
+  - Added `inject_profiler: bool = False` keyword parameter to `evaluate()`. When True, calls `_inject_profiler_option` for both baseline and candidate worktrees before each `run_lake_build` call.
+  - Added `inject_profiler: bool = False` parameter to `run_pipeline()` in `src/lean_rewrite/main.py`; wired through to `evaluate()`.
+  - Added `--inject-profiler` CLI flag to `main.py`'s argparse, passed to `run_pipeline()`.
+  - Added 4 unit tests to `tests/test_evaluator.py`: (a) `_inject_profiler_option` on existing file prepends correctly, (b) `_inject_profiler_option` on non-existent module silently ignores, (c) `evaluate(inject_profiler=True)` verified via mock that both worktree files contain the option at call time, (d) `evaluate(inject_profiler=False)` verified via mock that files are unchanged.
+  - All 104 tests pass (was 100; +4 new).
+- Learned:
+  - `inject_profiler=True` modifies both baseline and candidate worktree files. In production, `run_pipeline` passes `mathlib` as baseline — callers should be aware this would modify the shared mathlib4 source. Intended use is in ephemeral worktree contexts; a future task could restrict injection to the candidate only.
+  - Using `patch("lean_rewrite.evaluator.run_lake_build", side_effect=mock_build)` with a side_effect that reads the file before returning lets tests inspect worktree state at evaluation time without a real build.
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (+ `_inject_profiler_option`, `inject_profiler` param in `evaluate()`)
+  - `src/lean_rewrite/main.py` (+ `inject_profiler` param in `run_pipeline()`, `--inject-profiler` CLI flag)
+  - `tests/test_evaluator.py` (+ `_inject_profiler_option` import, `from unittest.mock import patch`, 4 new tests)
+  - `TASKS.md` (T013 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T012 (post-module-system dataset) and T014 (real E2E run2 with `--remove-unfolds`) are both unblocked and open.
+  - For T014, consider passing `inject_profiler=True` only to the candidate worktree to avoid modifying shared mathlib4.
+
 ## 2026-04-18T19:15:47Z — planning — WqPhzI
 - Trigger: TASKS.md had zero eligible open tasks (T001–T011 all done).
 - Reading: Tier 2 is the nearest unmet tier. T010 found that `data/refactor_commits.jsonl` is predominantly pre-module-system (pre-Dec-2024) and incompatible with the current toolchain (`v4.30.0-rc2`). Only 1 genuine def→abbrev entry exists in the dataset. Tier 1 criterion 3 is satisfied by the clear REJECTED verdict in experiments/001/run1, but no run with ACCEPTED + candidate.patch exists yet; T008/T009 fixes make this achievable now.
