@@ -239,9 +239,9 @@
 
 ## T017 — post-module データセット拡張: より広い commit prefix で def↔abbrev を走査
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: LF3HCV
+- claimed_at: 2026-04-18T20:56:17Z
 - 依存: T012
 - 内容:
   T012 では `refactor`/`perf`/`chore`/`abbrev` で始まるコミットしか走査せず、4 件のみ発見。`feat`/`fix`/`style`/`docs` で始まるコミットを追加走査して、より多くの post-module def↔abbrev 事例を発見する。
