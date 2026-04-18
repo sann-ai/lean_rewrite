@@ -18,9 +18,9 @@
 
 ## T002 — refactor-commit データセット抽出
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: mcdr9m
+- claimed_at: 2026-04-18T16:59:25Z
 - 依存: T001
 - 内容: `scripts/fetch_refactor_commits.py` を書く。mathlib4 の git 履歴から `^refactor` または `^perf` で始まるコミットのうち、diff が1つの `def` / `structure` / `class` のみを変更するものを抽出。結果を `data/refactor_commits.jsonl` に書く(フィールド: `sha`, `message`, `file`, `before_def`, `after_def`)。最低 50 件取れることを目標に。
 
