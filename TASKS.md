@@ -389,9 +389,9 @@
 
 ## T025 — Tier 3 E2E: simp-attr で natDegree を検証し impl_dependency_delta を計測
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: 1Fz6cl
+- claimed_at: 2026-04-18T23:44:40Z
 - 依存: T022, T023, T024
 - 内容:
   T023 の `add_simp_attr` 変換と T022 の `impl_dependency_count` メトリクスを使い、`Polynomial.natDegree` に対して Tier 3 E2E 検証を完成させる。
