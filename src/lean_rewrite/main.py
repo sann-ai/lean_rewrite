@@ -34,6 +34,17 @@ def _git_worktree_add(mathlib: Path, dest: Path) -> None:
     )
 
 
+def _lake_cache_get(worktree: Path, lake: str = "lake") -> None:
+    subprocess.run(
+        [lake, "exe", "cache", "get"],
+        cwd=str(worktree),
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
+
+
 def _git_worktree_remove(mathlib: Path, dest: Path) -> None:
     subprocess.run(
         ["git", "worktree", "remove", "--force", str(dest)],
@@ -128,6 +139,7 @@ def run_pipeline(
     wt_path = Path(tmp_base) / "cand"
     try:
         _git_worktree_add(mathlib, wt_path)
+        _lake_cache_get(wt_path, lake=lake)
         (wt_path / target_file).write_text(candidate_source, encoding="utf-8")
 
         result = evaluate(
