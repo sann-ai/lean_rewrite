@@ -8,9 +8,9 @@
 
 ## T001 — mathlib4 をローカルにクローン
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: human0
+- claimed_at: 2026-04-18T13:57:00Z
 - 依存: なし
 - 内容: `https://github.com/leanprover-community/mathlib4` を `/Users/san/mathlib4` に clone。`lake exe cache get` を実行し、`lake build Mathlib.Logic.Basic` など小さなモジュールのビルドが通ることを確認。使用した mathlib の commit SHA を `NOTEBOOK.md` に記録する。
 
