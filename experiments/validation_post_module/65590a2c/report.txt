@@ -1,0 +1,20 @@
+SHA:                  65590a2c4f789cfc771a7eac31cbda9660d72e5d
+Commit:               refactor(Data/List/Induction): improve definition of `reverseRecOn` (#33192)
+File:                 Mathlib/Data/List/Induction.lean
+remove_redundant_unfolds applied: no (no unfolds found)
+
+Definition:             reverseRecOn
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-pm-65590a2c-59ujlqi5/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-pm-65590a2c-59ujlqi5/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Data.List.Induction
+    Both succeeded: False
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

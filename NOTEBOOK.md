@@ -423,3 +423,45 @@
 - Next steps:
   - T015 (post-module validation) and T017 (dataset expansion) remain open.
   - A follow-up E2E run with `--remove-unfolds` on Nat.dist should now show `Unfold count delta: -16` (was -5 in run2), fully satisfying Tier 1 unfold-removal quality.
+
+## 2026-04-18T20:54:56Z — T015 — zv4RUw
+
+- Did:
+  - Created `scripts/validate_refactors_post_module.py`. Runs the pipeline against all 4 entries
+    in `data/refactor_commits_post_module.jsonl`. For each entry: retrieves before-state via
+    `git show sha^:file`, applies `def_to_abbrev`, applies `remove_redundant_unfolds`, creates
+    two mathlib worktrees at HEAD, overwrites the target file with before/candidate content,
+    runs `evaluate()`, writes report to `experiments/validation_post_module/<sha8>/report.txt`.
+  - All 4 reports generated. Results:
+    - `6f0e175f` SkewPolynomial: both builds succeeded, REJECTED (baseline unfold count = 0)
+    - `1627af05` Q: both builds failed (Archive/Sensitivity build errors in before-state)
+    - `65590a2c` reverseRecOn: baseline OK, candidate failed (abbrev breaks termination proof)
+    - `6eabe6b2` FiniteAdeleRing: BLOCKED (abbrev→def commit; before-state has `abbrev`, no `def` found)
+  - Written `experiments/validation_post_module/README.md` with full case notes.
+- Learned:
+  - **SkewPolynomial reveals a metric gap**: `is_improvement()` requires `unfold_count_baseline > 0`
+    or `unfold_count_delta < 0`. For typeclass-heavy definitions like `SkewPolynomial`, the real
+    benefit of `abbrev` is enabling typeclass synthesis to look through the definition — but this
+    never shows up as `unfold` calls. Both builds pass and the historical commit confirms it's a
+    valid change, yet our pipeline says REJECTED. Tier 3 metric work should add a "typeclass
+    instance synthesis" or `simp`-closure signal to catch this class of improvement.
+  - **reverseRecOn: def→abbrev is not always safe**: When the definition uses a `termination_by`
+    well-founded proof, making it `abbrev` can break elaboration. The candidate build fails.
+    A future safety-check heuristic: skip `abbrev` conversion if the before-state has `termination_by`.
+  - **abbrev→def commits are out of scope**: `FiniteAdeleRing` (6eabe6b2) goes in the wrong direction.
+    The dataset extraction correctly captures these (they may be useful as negative examples), but
+    the pipeline can't process them without a `def_to_def` transformation.
+  - Tier 2 acceptance criteria met: 4/4 reports have `All builds succeeded:` and `VERDICT:` lines.
+- Files touched:
+  - `scripts/validate_refactors_post_module.py` (new)
+  - `experiments/validation_post_module/6f0e175f/report.txt` (new)
+  - `experiments/validation_post_module/1627af05/report.txt` (new)
+  - `experiments/validation_post_module/65590a2c/report.txt` (new)
+  - `experiments/validation_post_module/6eabe6b2/report.txt` (new)
+  - `experiments/validation_post_module/README.md` (new)
+  - `TASKS.md` (T015 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T017 (dataset expansion via feat/fix/style prefixes) remains open — more cases needed for Tier 2.
+  - Tier 3: add a metric that catches the SkewPolynomial case (typeclass synthesis improvement).
+  - Safety heuristic: skip abbrev conversion for defs with `termination_by`.

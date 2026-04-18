@@ -1,0 +1,7 @@
+SHA:                  6eabe6b20d3b729505e1c0829053ab45a3ad810f
+Commit:               chore: make FiniteAdeleRing a def rather than an abbrev (#32277)
+File:                 Mathlib/RingTheory/DedekindDomain/FiniteAdeleRing.lean
+Definition:           FiniteAdeleRing
+All builds succeeded: False
+
+VERDICT: BLOCKED — def_to_abbrev: no top-level `def FiniteAdeleRing` found in source
