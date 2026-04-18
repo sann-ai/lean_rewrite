@@ -255,9 +255,9 @@
 
 ## T018 — post-module 新規 2 件 (f3acad5a, a04c5481) の Tier 2 バリデーション
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: FOWSt4
+- claimed_at: 2026-04-18T21:29:26Z
 - 依存: T015, T017
 - 内容:
   T017 で追加された 2 件 (`f3acad5a`: runThe in Writer.lean, `a04c5481`: freeGroupEmptyEquivUnit in FreeGroup/Basic.lean) を pipeline に通し、Tier 2 バリデーションを完成させる。
