@@ -34,11 +34,13 @@
 
 ## T004 — `def → abbrev` 候補ジェネレータ
 
-- status: claimed
+- status: done
 - claimed_by: dndyij
 - claimed_at: 2026-04-18T23:15:00Z
+- done_at: 2026-04-18T23:30:00Z
 - 依存: なし
 - 内容: `src/lean_rewrite/candidates.py` に `def_to_abbrev(source: str, def_name: str) -> str` を実装。指定名の `def` を `abbrev` に書き換える(または `@[reducible]` 属性を付与)。対応すべきケース: アトリビュート保持、doc コメント保持、`noncomputable` / `protected` / `private` の保持、ジェネリクス(宇宙変数含む)の保持。各ケースにユニットテスト。
+- 結果: `src/lean_rewrite/candidates.py` に `def_to_abbrev` と `DefNotFoundError` を実装。`tests/test_candidates.py` に 21 ケース (基本・属性保持・doc コメント・`protected`/`private`/`noncomputable`/`partial`・ユニバース変数 `.{u}` / `Sort*`・複数行定義・prefix 誤マッチ防止・コメント中の def 無視・`@[reducible]` 重複防止・インデント保持) を追加、全パス。`noncomputable` と `partial` は `abbrev` 化不可のため `@[reducible]` 属性をヘッダ上に挿入するフォールバック実装。`pyproject.toml` を追加してパッケージレイアウト (`src/` レイアウト + `pytest` 設定) を用意。
 
 ## T005 — evaluator: 下流証明メトリクス差分
 
