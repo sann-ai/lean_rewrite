@@ -96,9 +96,9 @@
 
 ## T009 — 第2段変換: ダウンストリームの冗長 `unfold` 呼び出しを自動除去
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: PaTT9R
+- claimed_at: 2026-04-18T18:29:29Z
 - 依存: T006
 - 内容:
   `abbrev` 化後、ダウンストリームの `unfold <def_name>` 呼び出しは意味論的に不要になる。これを自動除去してビルドが通るか確認することで、パイプラインが「実際に証明を簡略化できる」ことを実証する。
