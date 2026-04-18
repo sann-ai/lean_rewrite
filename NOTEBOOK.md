@@ -402,3 +402,24 @@
 - Reading: Tier 2 is the nearest unmet tier. T012 generated `data/refactor_commits_post_module.jsonl` (4 records) to address the toolchain-incompatibility found in T010, but no validation script has been run against those post-module records yet. Tier 1 is fully satisfied (T014: ACCEPTED, candidate.patch generated). T014 also revealed that 11/16 inline `by unfold Nat.dist; tac` forms were left untouched by `remove_redundant_unfolds`, leaving room to improve unfold coverage.
 - New tasks: T015..T017
 - Rationale: T015 is the direct Tier 2 path — running the pipeline on all 4 post-module def↔abbrev commits and producing validation reports. T016 extends unfold removal to inline `by unfold X; tac` forms (T014 found 11 such cases in Nat.dist); this strengthens both Tier 1 quality and future Tier 4 metrics. T017 expands the post-module dataset by scanning `feat`/`fix`/`style` commit prefixes (T012 only scanned `refactor`/`perf`/`chore`/`abbrev`), providing more Tier 2 validation candidates if T015 reveals <3 successful reproductions.
+
+## 2026-04-18T20:32:49Z — T016 — FR51kV
+
+- Did:
+  - Extended `remove_redundant_unfolds` in `src/lean_rewrite/candidates.py` with two new passes after the existing standalone-line fullmatch pass:
+    - **Pass 2** (inline semicolon): regex `\bby\s+unfold <name>[at loc];\s*` → `by `. Handles `theorem ... := by unfold Nat.dist; lia` → `theorem ... := by lia` and `by unfold Nat.dist at h; lia` → `by lia`.
+    - **Pass 3** (inline end-of-line): regex `\bby\s+unfold <name>[at loc]` at end of line → `by`. Handles `theorem ... := by unfold Nat.dist\n  tac\n` → `theorem ... := by\n  tac\n`.
+  - Added 7 new test cases to `tests/test_candidates.py`: inline semicolon, `at loc` form, next-line tactic, eol-only, multiple tactics after semicolon, other-def not touched, and a 16-unfold Nat.dist scenario covering all standalone + inline forms.
+  - All 135 tests pass (was 128; added 7).
+- Learned:
+  - The `at h` clause in `unfold X at h` is optional in the pattern — `(?:\s+at\s+[\w.]+)?` covers both forms.
+  - Pass 1 (standalone fullmatch) must complete before Pass 2 so that lines like `  unfold Nat.dist; lia` (standalone tactic lines) are not hit by both passes.
+  - With all three passes, all 16 unfolds in Nat.dist can now be removed: 5 standalone (Pass 1) + 11 inline (Pass 2, including the `at h` variant on line 31).
+- Files touched:
+  - `src/lean_rewrite/candidates.py` (`remove_redundant_unfolds` extended)
+  - `tests/test_candidates.py` (7 new tests)
+  - `TASKS.md` (T016 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T015 (post-module validation) and T017 (dataset expansion) remain open.
+  - A follow-up E2E run with `--remove-unfolds` on Nat.dist should now show `Unfold count delta: -16` (was -5 in run2), fully satisfying Tier 1 unfold-removal quality.

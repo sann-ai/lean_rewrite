@@ -220,9 +220,10 @@
 
 ## T016 — inline `by unfold X; tac` 形式の除去: `remove_redundant_unfolds` 拡張
 
-- status: claimed
+- status: done
 - claimed_by: FR51kV
 - claimed_at: 2026-04-18T20:29:37Z
+- done_at: 2026-04-18T20:32:49Z
 - 依存: T009, T014
 - 内容:
   T014 で判明した問題: `remove_redundant_unfolds` は行頭の `unfold X` や `unfold X; tac` スタンドアロン行のみ処理し、`theorem ... := by unfold X; tac` のようなインライン形式（`by` ブロック内で unfold が最初のタクティク）は除去できない。`Nat.dist` では 11 件のインライン unfold が残っている。

@@ -152,20 +152,23 @@ def def_to_abbrev(source: str, def_name: str) -> str:
 def remove_redundant_unfolds(source: str, def_name: str) -> str:
     """Remove ``unfold <def_name>`` tactic calls from Lean source.
 
+    Handles three forms:
     - Standalone ``unfold <def_name>`` lines are deleted entirely.
-    - ``unfold <def_name>; rest`` lines have the prefix removed; ``rest`` is kept.
-    - Lines for other definition names are not touched.
+    - ``unfold <def_name>; rest`` standalone lines have the prefix removed; ``rest`` is kept.
+    - Inline ``by unfold <def_name>[at loc]; rest`` → ``by rest`` (semicolon-separated).
+    - Inline ``by unfold <def_name>[at loc]`` at end of line → ``by``.
     """
     # Match both unqualified (``unfold dist``) and qualified (``unfold Nat.dist``)
     name_pat = rf"(?:\w+\.)*{re.escape(def_name)}"
-    unfold_re = re.compile(rf'(\s*)unfold\s+{name_pat}(?:\s*;\s*(.*))?')
 
+    # Pass 1: standalone unfold lines (fullmatch on each line)
+    standalone_re = re.compile(rf'(\s*)unfold\s+{name_pat}(?:\s*;\s*(.*))?')
     lines = source.splitlines(keepends=True)
     result = []
     for line in lines:
         stripped = line.rstrip('\n')
         eol = line[len(stripped):]
-        m = unfold_re.fullmatch(stripped)
+        m = standalone_re.fullmatch(stripped)
         if m:
             indent = m.group(1)
             rest = m.group(2)  # None if no semicolon part
@@ -174,8 +177,23 @@ def remove_redundant_unfolds(source: str, def_name: str) -> str:
             # else: remove line entirely (standalone unfold or `unfold X;` with no rest)
         else:
             result.append(line)
+    source = ''.join(result)
 
-    return ''.join(result)
+    # Pass 2: inline `by unfold X[at loc]; rest` → `by rest`
+    # Handles `by unfold Nat.dist; lia` and `by unfold Nat.dist at h; lia`
+    inline_semi_re = re.compile(
+        rf'\bby\s+unfold\s+{name_pat}(?:\s+at\s+[\w.]+)?\s*;\s*'
+    )
+    source = inline_semi_re.sub('by ', source)
+
+    # Pass 3: inline `by unfold X[at loc]` at end of line → `by`
+    inline_eol_re = re.compile(
+        rf'\bby\s+unfold\s+{name_pat}(?:\s+at\s+[\w.]+)?(?=[ \t]*(?:\n|$))',
+        re.MULTILINE,
+    )
+    source = inline_eol_re.sub('by', source)
+
+    return source
 
 
 def _has_reducible_attr_directly_above(prefix: str) -> bool:

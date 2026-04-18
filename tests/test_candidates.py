@@ -261,3 +261,90 @@ def test_remove_unfold_unqualified_does_not_partial_match() -> None:
     src = "  unfold Nat.distance\n"
     out = remove_redundant_unfolds(src, "dist")
     assert out == src
+
+
+# ---------------------------------------------------------------------------
+# inline `by unfold X; tac` forms (T016)
+# ---------------------------------------------------------------------------
+
+def test_inline_by_unfold_semicolon_rest() -> None:
+    # `theorem ... := by unfold Nat.dist; lia` → `theorem ... := by lia`
+    src = "theorem foo : P := by unfold Nat.dist; lia\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold" not in out
+    assert "by lia" in out
+
+
+def test_inline_by_unfold_at_loc_semicolon_rest() -> None:
+    # `by unfold Nat.dist at h; lia` → `by lia`
+    src = "theorem foo (h : P) : Q := by unfold Nat.dist at h; lia\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold" not in out
+    assert "by lia" in out
+
+
+def test_inline_by_unfold_next_line_tactic() -> None:
+    # `theorem ... := by unfold X\n  lia\n` → `theorem ... := by\n  lia\n`
+    src = "theorem foo : P := by unfold Nat.dist\n  lia\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold" not in out
+    assert ":= by\n" in out
+    assert "lia" in out
+
+
+def test_inline_by_unfold_eol_only() -> None:
+    # `theorem ... := by unfold X` at end of source → `theorem ... := by`
+    src = "theorem foo : P := by unfold Nat.dist"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold" not in out
+    assert out == "theorem foo : P := by"
+
+
+def test_inline_by_unfold_multiple_tactics_after_semicolon() -> None:
+    # `by unfold Nat.dist; simp; ring` → `by simp; ring`
+    src = "theorem foo : P := by unfold Nat.dist; simp; ring\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold" not in out
+    assert "by simp; ring" in out
+
+
+def test_inline_does_not_touch_other_def() -> None:
+    # `by unfold Other.def; lia` should not be modified when def_name="dist"
+    src = "theorem foo : P := by unfold Other.def; lia\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert out == src
+
+
+def test_nat_dist_all_16_unfolds_removed() -> None:
+    # Construct a string with all 16 unfold patterns found in Nat.dist:
+    # 5 standalone and 11 inline forms
+    standalone = (
+        "theorem a : P := by\n"
+        "  unfold Nat.dist; lia\n"
+        "theorem b : P := by\n"
+        "  unfold Nat.dist; lia\n"
+        "theorem c : P := by\n"
+        "  unfold Nat.dist; lia\n"
+        "theorem d : P := by\n"
+        "  unfold Nat.dist; lia\n"
+        "theorem e : P := by\n"
+        "  unfold Nat.dist; lia\n"
+    )
+    inline = (
+        "theorem f : P := by unfold Nat.dist; lia\n"
+        "theorem g : P := by unfold Nat.dist; lia\n"
+        "theorem h : P := by unfold Nat.dist; lia\n"
+        "theorem i : P := by unfold Nat.dist; lia\n"
+        "theorem j : P := by unfold Nat.dist; lia\n"
+        "theorem k : P := by unfold Nat.dist; lia\n"
+        "theorem l : P := by unfold Nat.dist; lia\n"
+        "theorem m : P := by unfold Nat.dist; lia\n"
+        "theorem n : P := by unfold Nat.dist; lia\n"
+        "theorem o (h : P) : Q := by unfold Nat.dist at h; lia\n"
+        "theorem p : P := by unfold Nat.dist; lia\n"
+    )
+    src = standalone + inline
+    assert src.count("unfold Nat.dist") == 16
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold Nat.dist" not in out
+    assert "lia" in out
