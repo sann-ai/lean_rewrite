@@ -302,3 +302,9 @@
   - Auto-inject `set_option profiler true` into the target module before building to always capture elaboration time (new task).
   - With reliable elaboration-time data, revisit `is_improvement()` to use it as a secondary signal alongside unfold count.
   - All Tier 1 criteria now more firmly in place. Tier 2 needs post-Dec-2024 mathlib dataset; T010 found the current `data/refactor_commits.jsonl` is incompatible with the current toolchain.
+
+## 2026-04-18T19:15:47Z — planning — WqPhzI
+- Trigger: TASKS.md had zero eligible open tasks (T001–T011 all done).
+- Reading: Tier 2 is the nearest unmet tier. T010 found that `data/refactor_commits.jsonl` is predominantly pre-module-system (pre-Dec-2024) and incompatible with the current toolchain (`v4.30.0-rc2`). Only 1 genuine def→abbrev entry exists in the dataset. Tier 1 criterion 3 is satisfied by the clear REJECTED verdict in experiments/001/run1, but no run with ACCEPTED + candidate.patch exists yet; T008/T009 fixes make this achievable now.
+- New tasks: T012..T014
+- Rationale: T012 generates a post-module-system compatible def→abbrev dataset, directly enabling Tier 2 validation. T013 wires the profiler auto-injection that T011 left as a follow-up, giving stable elaboration-time data needed for Tier 4. T014 runs the E2E pipeline with --remove-unfolds on Nat.dist — the first concrete demonstration that the pipeline produces ACCEPTED + candidate.patch, closing the remaining gap in Tier 1.

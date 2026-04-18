@@ -140,3 +140,59 @@
   3. 実現可能なほうを選んで `src/lean_rewrite/evaluator.py` に `_parse_elaboration_times(stdout: str) -> dict[str, float]` を追加。`ModuleMetrics` に `elaboration_time_sec: float | None` フィールドを追加(取得できない場合は None)。
   4. `tests/test_evaluator.py` にパーサのユニットテスト追加(実際の lake 出力サンプルを fixture として使う)。
   受け入れ基準: `_parse_elaboration_times` が最低 1 件の実 lake build 出力から数値を取り出せること。既存テスト全パス。
+
+## T012 — post-module-system def→abbrev データセット抽出
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T001, T002
+- 内容:
+  T010 で判明した問題: `data/refactor_commits.jsonl` の大半は 2024-12 以前のコミット（旧 import 構文）であり、現在の toolchain (`v4.30.0-rc2`) でビルドできない。Tier 2 検証には現行 toolchain と互換なエントリが必要。
+  実装手順:
+  1. `scripts/fetch_refactor_commits_post_module.py` を新規作成（または既存スクリプトを `--after-sha` オプション付きで拡張）。`/Users/san/mathlib4` の git log を SHA `6a54a80825`（module-system 導入コミット）以降に限定してスキャン。
+  2. フィルタ条件: `before_def` が `def ` で始まり `after_def` が `abbrev ` で始まるエントリ、または逆方向（abbrev → def）。既存の `extract_all_def_blocks` ロジックを再利用可。
+  3. 結果を `data/refactor_commits_post_module.jsonl` に書き出す（フィールドは既存の jsonl と同一: `sha`, `message`, `file`, `def_name`, `before_def`, `after_def`）。
+  4. `tests/test_fetch_refactor_post_module.py` を追加: SHA フィルタが正しく機能するユニットテスト、および `def → abbrev` フィルタのユニットテスト（モック git log 使用）。
+  受け入れ基準: `data/refactor_commits_post_module.jsonl` に 3 件以上のエントリが存在し(0件の場合は NOTEBOOK に記録して blocked)、全テストパス。
+
+## T013 — evaluator: `set_option profiler true` 自動注入
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T011
+- 内容:
+  T011 では `_parse_elaboration_times` パーサを実装したが、実際に profiler 出力を得るには対象 Lean ファイルに `set_option profiler true` が必要。現状は手動でソースに書かないと `elaboration_time_sec` が常に None になる。
+  実装:
+  1. `src/lean_rewrite/evaluator.py` の `evaluate()` に `inject_profiler: bool = False` パラメータを追加。
+  2. `inject_profiler=True` のとき、`run_lake_build` を呼ぶ直前に worktree 内の対象モジュールファイルの先頭に `set_option profiler true\n` を一時挿入（ビルド後は元に戻さない — worktree はエフェメラルなので問題なし）。
+  3. `src/lean_rewrite/main.py` の `run_pipeline()` に `--inject-profiler` CLI フラグを追加し、`evaluate()` に渡す。
+  4. `tests/test_evaluator.py` に 3 件以上のユニットテスト追加: (a) `inject_profiler=True` で対象ファイルに `set_option profiler true` が挿入されること（ファイル読み込みで確認）、(b) `inject_profiler=False` のときファイルが変更されないこと、(c) 存在しないファイルでは無視されること。
+  受け入れ基準: 全既存 100 テストがパス、新テスト 3 件以上パス。
+
+## T014 — 実 E2E run2: `--remove-unfolds` で Nat.dist を ACCEPTED にする
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T008, T009
+- 内容:
+  T009 で `--remove-unfolds` フラグが実装されたが、実際の E2E 実行（実 mathlib ビルド）で ACCEPTED を得た記録がない。Tier 1 の「`is_improvement` が True で `candidate.patch` が生成されている」を確実に達成する。
+  手順:
+  1. セッション内で以下を実行:
+     ```
+     cd <SESSION>
+     PYTHONPATH=src python3 -m lean_rewrite.main \
+       --mathlib /Users/san/mathlib4 \
+       --file Mathlib/Data/Nat/Dist.lean \
+       --def-name dist \
+       --downstream Mathlib.Data.Nat.Dist \
+       --timeout 900 \
+       --output-dir experiments/001/run2 \
+       --remove-unfolds
+     ```
+  2. `experiments/001/run2/report.txt` に `All builds succeeded: True` と `VERDICT: ACCEPTED` が含まれることを確認。
+  3. `experiments/001/run2/candidate.patch` が存在することを確認。
+  4. ビルドが失敗・タイムアウトする場合は失敗ログを `experiments/001/run2/error.txt` に保存し、status を `blocked: <理由>` にして NOTEBOOK に記録。
+  受け入れ基準: `experiments/001/run2/report.txt` が存在し `VERDICT: ACCEPTED` を含む。ビルドが通らない場合は blocked で記録し次エージェントへ引き継ぐ。
