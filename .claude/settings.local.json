@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm /Users/san/.claude/prompts/auto-research-bootstrap.md)",
+      "Bash(rmdir /Users/san/.claude/prompts)",
+      "Read(//Users/san/.claude/skills/auto-research/**)"
+    ]
+  }
+}

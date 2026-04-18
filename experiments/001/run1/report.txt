@@ -1,0 +1,16 @@
+Definition:             dist
+Baseline worktree:      /Users/san/mathlib4
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-wt-qrdp0th6/cand
+All builds succeeded:   True
+Wall time delta (sum):  +3.73s
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Data.Nat.Dist
+    Both succeeded: True
+    Wall time delta:   +3.73s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no reduction in unfold count

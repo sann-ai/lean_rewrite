@@ -184,3 +184,18 @@
 ## 2026-04-18T17:29:28Z — idle — i6GDSB: no open tasks, all T001–T007 done
 
 ## 2026-04-18T17:44:23Z — idle — 8wlk8k: no open tasks, all T001–T007 done
+
+## 2026-04-18T17:51:17Z — experiments/001/run1 — human0
+
+- Did: Ran the E2E pipeline end-to-end on `Nat.dist` (`Mathlib/Data/Nat/Dist.lean`), downstream `Mathlib.Data.Nat.Dist` only.
+  - Command: `PYTHONPATH=src python3 -m lean_rewrite.main --mathlib /Users/san/mathlib4 --file Mathlib/Data/Nat/Dist.lean --def-name dist --downstream Mathlib.Data.Nat.Dist --timeout 900 --output-dir experiments/001/run1`
+  - Before running, patched `main.py` to call `lake exe cache get` inside the candidate worktree (commit `464d752`). Without this the candidate build would trigger a from-source mathlib rebuild.
+- Learned:
+  - **Structurally the pipeline works**: `def_to_abbrev` produced a valid candidate, `git worktree add` + `lake exe cache get` + `lake build` succeeded for both baseline and candidate (`All builds succeeded: True`).
+  - **The current improvement metric is too literal**: `unfold_count_delta = 0`. The evaluator counts `unfold <def_name>` occurrences in downstream source. Changing `def` to `abbrev` does not remove existing `unfold Nat.dist` calls in `Dist.lean` — it just makes them redundant no-ops. The pipeline currently only detects improvement when some downstream file physically removes `unfold` lines, which our transformation does not do.
+  - **Implication for next work**: `is_improvement` as defined never fires for a pure `def → abbrev` swap. Options: (a) second-stage transformation that rewrites `unfold <name>; <closer>` → `<closer>` in downstream proofs, (b) weaker improvement metric (candidate builds succeed AND wall-time not significantly worse AND candidate source size non-increasing), (c) richer diff measure (e.g., elaboration time).
+  - Wall time delta was `+3.73s` on a ~15s build — noise.
+- Files touched:
+  - `src/lean_rewrite/main.py` (+ `_lake_cache_get`)
+  - `experiments/001/run1/report.txt` (new)
+- Next steps: Do not hand-draft Phase 2 tasks. Leave `TASKS.md` empty so the new planning-when-idle flow in `AGENTS.md` proposes them on the next scheduler tick, targeting the Completion Criteria in `PLAN.md`.

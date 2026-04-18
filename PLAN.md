@@ -57,6 +57,30 @@ mathlib4 の Lean 4 定義を自動で書き換え、下流の証明を扱いや
 - mathlib4 の `AlgebraicGeometry.Scheme` の git 履歴を ground truth にエージェントを評価
 - 「人間の refactor を再発見できるか」を指標に
 
+## 完成基準 (Completion criteria)
+
+プロジェクトは以下の 4 ティアで進む。AGENTS.md の「Planning when idle」ルーチンはこの一覧を **目標として参照する**。`TASKS.md` が空になったとき、計画エージェントは最も近い未達ティアを特定し、それを進めるためのタスクを 2〜4 個提案する。
+
+### Tier 1 — MVP
+- E2E パイプライン (`src/lean_rewrite/main.py`) が実 mathlib 定義に対して最低 1 回走り、`experiments/.../report.txt` を生成している
+- レポートで baseline / candidate 両方の `All builds succeeded: True` が確認できる
+- `is_improvement` が True を返して `candidate.patch` が生成されているか、メトリクスに基づいて明確に REJECTED となっている
+
+### Tier 2 — mathlib 履歴に対する検証
+- `data/refactor_commits.jsonl` の中から **既知 3 件以上** の mathlib refactor commit を再現(before 状態を与えて、パイプラインが after 状態と等価なパッチを提案)
+- 再現記録を `experiments/validation/` に保存
+
+### Tier 3 — `def → abbrev` 以外への一般化
+- 追加の変換族を **最低 1 つ** 実装して E2E で検証(候補: 暗黙⇄明示 binder、引数順、`@[simp]` 付与、bundled↔unbundled など)
+- 追加変換ごとに `experiments/` に再現例を残す
+
+### Tier 4 — 非自明な実例
+- **5 件以上の下流証明** を持つ定義に対して測定可能な改善を示す
+- 改善が人間のレビュアーから見て妥当であると判断できる簡潔なレポートを `experiments/` に添える
+
+### 全体として「完了」と言える条件(人間が最終判断)
+Tier 1〜4 をすべて満たし、かつ Buzzard ら *Schemes in Lean* の手書き refactor との比較(定性的で可)を `experiments/writeup.md` に記す。
+
 ## モジュール契約 (実装済み)
 
 後続タスクがこれらを呼び出すときの仕様。変更する場合は PLAN.md も同時に更新すること。

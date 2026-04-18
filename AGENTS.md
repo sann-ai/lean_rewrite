@@ -105,6 +105,43 @@ End the session under any of the following:
 - 60 minutes elapsed (record the state as `status: blocked: timeout` and release the claim)
 - A decision point requires human judgment (set `status: blocked: needs human` and **stop**)
 
+## Planning when idle
+
+If Step 2 finds **zero eligible open tasks** (all existing tasks are `done` or `blocked`), you do NOT stop with an idle tick. You become a **planning agent** whose job is to extend the task backlog toward the "Completion criteria" in `PLAN.md`.
+
+### Planning procedure
+
+1. Re-read `PLAN.md`, especially the "Completion criteria" section and the current phase. These define the target.
+2. Read the last ~200 lines of `NOTEBOOK.md` — what was just completed, what did recent agents learn, what follow-ups did they flag?
+3. Scan `TASKS.md` for the highest existing task ID (e.g., `T007`). New tasks continue the numbering (`T008`, `T009`, ...).
+4. Run `git pull --rebase origin main` one more time. **If another agent raced you and has added open tasks, abort planning**: exit without modifying anything (the system is no longer idle).
+5. Judge whether the Completion criteria have been met, using NOTEBOOK evidence:
+   - If **all tiers are satisfied** (and a human has not flagged Tier gaps), append a single idle entry to `NOTEBOOK.md` — e.g. `## <UTC> — idle — <agent-id>: completion criteria appear met; awaiting human direction` — commit as `chore: idle tick by <agent-id>`, push, and stop.
+   - Otherwise, identify the **nearest unmet tier** and propose **2–4 concrete next tasks** to advance it.
+6. For each proposed task:
+   - Unique new ID continuing the sequence
+   - `status: open`, empty `claimed_by` / `claimed_at`
+   - Explicit `依存:` — only list prerequisites that are already `status: done` (no forward references)
+   - Description tight enough that a different agent can execute it without asking you: include relevant file paths, acceptance criteria, constraints, and any test expectations
+7. Append a planning entry to `NOTEBOOK.md`:
+   ```
+   ## <UTC ISO> — planning — <agent-id>
+   - Trigger: TASKS.md had zero eligible open tasks.
+   - Reading: <1–2 sentences on which tier is unmet and why>
+   - New tasks: T0NN..T0MM
+   - Rationale: <1 short paragraph on how these advance Completion criteria>
+   ```
+8. Commit as `plan: add T0NN..T0MM`, push. The next scheduled fire will claim one of these.
+
+### Planning guardrails
+
+- Propose **at most 4 tasks** in a single planning run.
+- **Never modify or delete existing tasks.** Only append new ones.
+- **Never add a task whose dependency is not yet `done`.**
+- Do not alter `AGENTS.md`, `README.md`, or the Completion criteria in `PLAN.md` — those are human-approval territory.
+- If you believe the Completion criteria themselves need revision, stop planning and append `## <UTC> — blocked: needs human — <agent-id>` to `NOTEBOOK.md` naming the criterion and why; do not add tasks premised on revised criteria.
+- If the last 2 consecutive NOTEBOOK entries are already `planning` entries (another agent just planned, and the last-planned tasks haven't executed yet), stop without adding more — you're looping.
+
 ## Conventions
 
 - **Commit messages**:
