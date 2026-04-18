@@ -598,3 +598,9 @@
     that the SkewPolynomial case now passes. A full 6-record re-run is the logical next step.
   - Tier 3: implement a transformation that reduces downstream implementation dependency beyond
     def→abbrev (e.g. `@[simp]` auto-assignment + downstream `unfold` elimination).
+
+## 2026-04-18T22:16:22Z — planning — hqa9Z6
+- Trigger: TASKS.md had zero eligible open tasks (T001–T020 all done).
+- Reading: Tier 1 is fully satisfied (T014: ACCEPTED, candidate.patch generated, builds OK). Tier 2 is the nearest unmet tier — the criterion requires ≥3 known mathlib refactor commits reproduced. T015/T018 ran 6 post-module records but none returned ACCEPTED (SkewPolynomial: metric gap; reverseRecOn: termination_by build failure; FiniteAdeleRing: wrong direction; 1627af05/a04c5481: build failures). T019 fixed the SkewPolynomial metric gap (instance_context_count signal) and T020 added a termination_by safety guard — but the validation records predate these fixes. Tier 3 requires a new transformation that demonstrably reduces downstream implementation dependency; T022/T023/T024 begin that work.
+- New tasks: T021..T024
+- Rationale: T021 re-runs validation on all 6 post-module records with the improved pipeline (T019+T020) — SkewPolynomial should now be ACCEPTED, which is progress toward Tier 2. T022 adds a broader implementation-dependency metric (show/change/projection counts) to evaluator.py, providing the numerical foundation Tier 3 requires. T023 implements the `@[simp]` auto-annotation transformer — a second transformation family that reduces downstream dependency (downstream can use `simp` instead of explicitly citing implementation details). T024 mines mathlib4 for concrete @[simp]-eligible defs that lack the attribute but have downstream unfold calls, supplying targets for the Tier 3 E2E run. Together T021 confirms/advances Tier 2, while T022–T024 lay the groundwork for Tier 3.

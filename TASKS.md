@@ -308,3 +308,77 @@
   3. `tests/test_candidates.py` に `has_termination_by` のテスト追加(最低 4 ケース: termination_by あり・なし・別定義・コメント内は無視)。
   4. `tests/test_main.py` に `SKIPPED_TERMINATION_BY` 経路のモックテスト追加。
   受け入れ基準: 全既存テストがパス、新テスト 4 件以上パス。`reverseRecOn` のような `termination_by` を含む def ソースに対して `has_termination_by` が True を返すこと。
+
+## T021 — Tier 2 再バリデーション: 改良パイプライン(T019+T020 適用)で全 6 件を再実行
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T019, T020
+- 内容:
+  T019(instance_context_count シグナル追加)と T020(termination_by スキップ)が完了したが、バリデーション記録(experiments/validation_post_module/)は旧パイプラインで生成されたもの。Tier 2 の「既知 3 件以上を再現」を確定させるために、6 件全体を改良済みパイプラインで再実行する。
+  手順:
+  1. `scripts/validate_all_post_module_v2.py` を新規作成。`data/refactor_commits_post_module.jsonl` の全 6 件を対象に、各エントリに対して:
+     - `git show sha^:<file>` で before-state ファイルを取得して mathlib HEAD worktree に書き込む
+     - `run_pipeline()` を `remove_unfolds=True` で呼ぶ (T020 の `has_termination_by` ガードが自動発動)
+     - 結果を `experiments/validation_post_module_v2/<sha8>/report.txt` に保存
+  2. `experiments/validation_post_module_v2/README.md` に 6 件の結果サマリを記述 (SHA・def 名・verdict・instance_context_count baseline)。
+  3. worktree は `git worktree remove --force` で後片付け。
+  受け入れ基準: `experiments/validation_post_module_v2/` に 6 件のレポートが存在し、各レポートに `All builds succeeded:` 行・`VERDICT:` 行・`Baseline instance context count:` 行がある。ACCEPTED 件数を NOTEBOOK に記録する。
+
+## T022 — Tier 3 メトリクス拡張: 実装依存構文カウンタを evaluator に追加
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T005, T011
+- 内容:
+  Tier 3 は「下流の実装依存指標の減少が数値として示せる」ことを要求する。現行の `unfold` カウントのみでは不十分で、`show`/`change`/`.1`・`.2` プロジェクション/内部補題参照も含めた総合指標が必要。
+  実装:
+  1. `src/lean_rewrite/evaluator.py` に `_count_impl_dependency(source: str, def_name: str) -> int` を追加。カウント対象:
+     - `unfold <def_name>` (既存 unfold カウントと同じ行)
+     - `show .*<def_name>` (show タクティクの型注釈に def_name が現れる行)
+     - `change .*<def_name>` (change タクティクに def_name が現れる行)
+     - `\.<def_name>` または `.fst` / `.snd` / `.1` / `.2` (プロジェクション。def が構造型の場合のみ意味を持つが、偽陽性を許容してカウントする)
+     合計を返す。
+  2. `ModuleMetrics` に `impl_dependency_count: int = 0` フィールドを追加。
+  3. `EvalResult` に `total_impl_dependency_baseline` プロパティと `total_impl_dependency_delta` プロパティを追加。
+  4. `_collect_metrics()` で baseline モジュールの `_count_impl_dependency` を計算して `ModuleMetrics` に設定。
+  5. `format_report()` に `Baseline impl dependency count: N` / `Impl dependency delta: N` 行を追加。
+  6. `tests/test_evaluator.py` に最低 6 ケースのユニットテスト追加 (unfold のみ・show/change 混在・プロジェクション含む・別定義は無視・delta 計算・def_name substring 誤マッチ防止)。
+  受け入れ基準: 全既存テストがパス。新テスト 6 件以上パス。`format_report()` 出力に `Baseline impl dependency count:` 行が含まれること。
+
+## T023 — Tier 3 変換: `@[simp]` 自動付与トランスフォーマ
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T004, T009
+- 内容:
+  設計原理に沿った第 2 の変換族として `@[simp]` 自動付与を実装する。対象 `def` に `@[simp]` 属性を付けることで、下流が `simp only [def_name_eq]` / `unfold def_name; simp` の形で実装細部に依存していた箇所を `simp` 単独で閉じられるようにする。
+  実装:
+  1. `src/lean_rewrite/candidates.py` に `add_simp_attr(source: str, def_name: str) -> str` を追加。
+     - 対象 def のヘッダ直前に `@[simp]` を同インデントで挿入(既存 `@[...]` アトリビュートがあれば既存行に追記または既に `@[simp]` なら no-op)。
+     - `noncomputable` / `protected` / `private` などの modifier との共存を保持。
+     - `SimpAlreadyPresentError` を raise する代わりに、既に `@[simp]` がある場合は source を変更せず返す。
+  2. `src/lean_rewrite/main.py` に `--transform {def-to-abbrev,simp-attr}` オプションを追加(デフォルト: `def-to-abbrev`)。`simp-attr` 選択時は `add_simp_attr` を呼ぶ。`has_termination_by` ガードは `def-to-abbrev` モードのみ適用(simp-attr は termination_by に依存しない)。
+  3. `tests/test_candidates.py` に `add_simp_attr` のテスト最低 6 ケース追加 (基本挿入・既存 @[...] への追記・既に @[simp] → no-op・noncomputable 共存・doc コメント保持・def が見つからない場合は `DefNotFoundError`)。
+  4. `tests/test_main.py` に `--transform simp-attr` 経路の mocked テスト 3 件追加。
+  受け入れ基準: 全既存テストがパス。新テスト 6+3=9 件以上パス。`add_simp_attr` が既存 `@[foo]` を持つ def に対して `@[foo, simp]` を返すこと。
+
+## T024 — Tier 3 候補発掘: mathlib4 から `@[simp]` 付与候補 def を収集
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T001, T007
+- 内容:
+  T023 の `add_simp_attr` 変換をテストする具体的な mathlib def を見つけるためのデータ収集タスク。
+  手順:
+  1. `scripts/find_simp_eligible_defs.py` を新規作成。`/Users/san/mathlib4` の `Mathlib/` 以下を walk し、以下を両方満たす `def` を収集:
+     (a) def 自体に `@[simp]` アトリビュートがない
+     (b) 同ファイル内または同ディレクトリの別ファイルに `@[simp]` な定理で `def_name` を参照するものが 1 件以上存在 (grep: `@\[simp\].*\bdef_name\b` または `simp only \[def_name`)
+     (c) 同ファイル内または関連ファイルに `unfold def_name` が 1 件以上存在 (下流依存の確認)
+  2. 上位 10 件を `data/simp_eligible_defs.jsonl` に保存 (フィールド: `file`, `def_name`, `simp_lemma_count`, `downstream_unfold_count`, `is_noncomputable`)。
+  3. `experiments/003_simp_pilot/README.md` に上位 3 件の詳細 (def 内容・関連 simp 補題・unfold 使用例) を記述。これは次の E2E 実行の入力になる。
+  受け入れ基準: `data/simp_eligible_defs.jsonl` に 3 件以上のエントリが存在。`experiments/003_simp_pilot/README.md` に上位 3 件の具体的内容が記述されていること。
