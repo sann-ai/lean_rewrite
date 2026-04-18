@@ -278,3 +278,27 @@
   - Tier 2 completion requires finding post-Dec-2024 mathlib commits with def→abbrev changes (current dataset is incompatible with current toolchain). A follow-up task should filter git history for commits after `6a54a80825`.
   - T011 (elaboration time metrics) is unblocked and orthogonal.
   - Consider a new task: mine post-module-system mathlib commits for def→abbrev changes to build a compatible validation dataset.
+
+## 2026-04-18T19:03:01Z — T011 — NdNAjU
+
+- Did:
+  - Investigated `lake build` output format: ran `lake build --verbose Mathlib.Logic.Basic` (all "Replayed" from cache, no timing in output), then `lean Test.lean` directly with `set_option profiler true`, confirming profiler outputs `cumulative profiling times: ... elaboration Xms ...` to stdout.
+  - Created a minimal lake project to confirm the format appears in `lake build` stdout under `info: stderr:` following `ℹ [N/M] Built <module> (Xms)` when `set_option profiler true` is active.
+  - Added `_parse_elaboration_times(stdout: str) -> dict[str, float]` to `src/lean_rewrite/evaluator.py`. Parser finds `Built <module>` lines (skips `Replayed`), searches forward ~50 lines for `elaboration <value><ms|s>`, converts to seconds. Returns empty dict when no profiling data.
+  - Added `elaboration_time_sec: float | None = None` field to `ModuleMetrics` (frozen dataclass, default None for backward compat).
+  - Updated `_collect_metrics` to call `_parse_elaboration_times(build.stdout)` and populate `elaboration_time_sec` from the result.
+  - Added 6 unit tests to `tests/test_evaluator.py`: single-ms parse, replayed→empty, mixed (only Built modules captured), seconds-unit conversion, empty stdout, no profiling block.
+  - All 100 tests pass (9.95s).
+- Learned:
+  - `lake build --verbose` only shows "command invocations and built targets" — no per-file timing. The profiler output requires `set_option profiler true` in the Lean source; lake then captures the lean process stderr and emits it as `info: stderr:` in its own stdout.
+  - The evaluator does not auto-inject `set_option profiler true`. When a worktree's modified file already has the option active, the parser will capture timing automatically. For the `Nat.dist` pipeline (no profiler option), `elaboration_time_sec` remains None.
+  - Injecting `set_option profiler true` automatically (as a next step) would require inserting a line at the top of the target file in the candidate worktree before building — straightforward but changes the source slightly.
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (+ `_parse_elaboration_times`, `elaboration_time_sec` field on `ModuleMetrics`, updated `_collect_metrics`, updated module docstring)
+  - `tests/test_evaluator.py` (+ 6 new parser unit tests, updated import)
+  - `TASKS.md` (T011 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Auto-inject `set_option profiler true` into the target module before building to always capture elaboration time (new task).
+  - With reliable elaboration-time data, revisit `is_improvement()` to use it as a secondary signal alongside unfold count.
+  - All Tier 1 criteria now more firmly in place. Tier 2 needs post-Dec-2024 mathlib dataset; T010 found the current `data/refactor_commits.jsonl` is incompatible with the current toolchain.

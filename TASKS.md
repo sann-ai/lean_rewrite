@@ -127,9 +127,10 @@
 
 ## T011 — elaboration 時間メトリクス: `lake build` 詳細ログから per-file タイミングを取得
 
-- status: claimed
+- status: done
 - claimed_by: NdNAjU
 - claimed_at: 2026-04-18T18:59:17Z
+- done_at: 2026-04-18T19:03:01Z
 - 依存: T005
 - 内容:
   現状の evaluator は壁時計時間しか計れず揺らぎが ±20% ある。`lake build` の詳細出力から per-file の elaboration 時間を取り出すことで、より安定したメトリクスを得る。

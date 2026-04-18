@@ -2,8 +2,9 @@
 
 Metrics reported per module:
   (a) wall-clock build time difference (candidate − baseline)
-  (b) elaboration time: wall time is used as a proxy; proper profiler integration
-      (set_option profiler true) is left for a future task
+  (b) elaboration time: parsed from ``lake build`` stdout when ``set_option
+      profiler true`` is active in the source (stored in ``ModuleMetrics.
+      elaboration_time_sec``; None when profiler output is absent)
   (c) whether both builds succeeded
   (d) static unfold count (occurrences of `unfold <def_name>` in source) and
       proof LOC difference — a coarse proxy for how the rewrite affects downstream files
@@ -27,6 +28,7 @@ class ModuleMetrics:
     build: BuildResult
     unfold_count: int
     proof_loc: int
+    elaboration_time_sec: float | None = None
 
     @property
     def wall_time_sec(self) -> float:
@@ -89,6 +91,42 @@ class EvalResult:
         return sum(c.baseline.unfold_count for c in self.comparisons)
 
 
+def _parse_elaboration_times(stdout: str) -> dict[str, float]:
+    """Parse per-module elaboration times from ``lake build`` stdout.
+
+    When ``set_option profiler true`` is active in a Lean source, ``lake build``
+    captures the profiler output and emits it under the ``info: stderr:`` block
+    that follows a ``Built <module>`` line.  Example fragment::
+
+        ℹ [2/3] Built Mathlib.Data.Nat.Dist (1234ms)
+        info: stderr:
+        cumulative profiling times:
+            elaboration 45.2ms
+            ...
+
+    Returns a dict from module name (as passed to ``lake build``) to elaboration
+    time in seconds.  Modules that were replayed from the cloud cache emit a
+    ``Replayed`` line instead of ``Built`` and have no profiling block; they are
+    absent from the returned dict.
+    """
+    result: dict[str, float] = {}
+    lines = stdout.splitlines()
+    for i, line in enumerate(lines):
+        m = re.search(r"Built\s+(\S+)", line)
+        if not m:
+            continue
+        module_name = m.group(1)
+        # Search the next 50 lines for the elaboration entry
+        for j in range(i + 1, min(i + 51, len(lines))):
+            em = re.match(r"\s+elaboration\s+([\d.]+)(ms|s)\s*$", lines[j])
+            if em:
+                value = float(em.group(1))
+                unit = em.group(2)
+                result[module_name] = value / 1000.0 if unit == "ms" else value
+                break
+    return result
+
+
 def _module_to_path(worktree: Path, module: str) -> Path:
     """'Mathlib.Logic.Basic' → '<worktree>/Mathlib/Logic/Basic.lean'."""
     parts = module.split(".")
@@ -122,11 +160,13 @@ def _collect_metrics(
     else:
         unfold_count = 0
         loc = 0
+    elab_times = _parse_elaboration_times(build.stdout)
     return ModuleMetrics(
         module=module,
         build=build,
         unfold_count=unfold_count,
         proof_loc=loc,
+        elaboration_time_sec=elab_times.get(module),
     )
 
 

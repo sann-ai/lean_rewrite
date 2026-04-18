@@ -19,6 +19,7 @@ from lean_rewrite.evaluator import (
     ModuleMetrics,
     _count_unfolds,
     _module_to_path,
+    _parse_elaboration_times,
     _proof_loc,
     evaluate,
 )
@@ -220,6 +221,83 @@ def test_eval_result_baseline_count_nat_dist_scenario() -> None:
     )
     assert result.total_unfold_count_baseline == 16
     assert result.all_succeeded is True
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for _parse_elaboration_times (no I/O)
+# ---------------------------------------------------------------------------
+
+# Fixture: real lake build stdout for a single freshly-compiled module
+_LAKE_STDOUT_SINGLE = """\
+ℹ [2/3] Built Test (200ms)
+info: stderr:
+cumulative profiling times:
+\t.olean serialization 10.1ms
+\tattribute application 0.0622ms
+\telaboration 1.28ms
+\tparsing 0.204ms
+Build completed successfully (3 jobs).
+"""
+
+# Fixture: replayed module (cached) — no profiling block
+_LAKE_STDOUT_REPLAYED = """\
+✔ [65/65] Replayed Mathlib.Logic.Basic
+Build completed successfully (65 jobs).
+"""
+
+# Fixture: two modules, one fresh, one replayed
+_LAKE_STDOUT_MIXED = """\
+✔ [1/3] Replayed Mathlib.Logic.Basic
+ℹ [2/3] Built Mathlib.Data.Nat.Dist (350ms)
+info: stderr:
+cumulative profiling times:
+\telaboration 45.2ms
+\tparsing 1.1ms
+Build completed successfully (3 jobs).
+"""
+
+# Fixture: elaboration time in seconds (not ms)
+_LAKE_STDOUT_SECONDS = """\
+ℹ [1/1] Built BigModule (12300ms)
+info: stderr:
+cumulative profiling times:
+\telaboration 3.5s
+Build completed successfully (1 jobs).
+"""
+
+
+def test_parse_elaboration_times_single_ms() -> None:
+    result = _parse_elaboration_times(_LAKE_STDOUT_SINGLE)
+    assert set(result.keys()) == {"Test"}
+    assert abs(result["Test"] - 0.00128) < 1e-9
+
+
+def test_parse_elaboration_times_replayed_returns_empty() -> None:
+    result = _parse_elaboration_times(_LAKE_STDOUT_REPLAYED)
+    assert result == {}
+
+
+def test_parse_elaboration_times_mixed_only_built() -> None:
+    result = _parse_elaboration_times(_LAKE_STDOUT_MIXED)
+    assert "Mathlib.Logic.Basic" not in result
+    assert "Mathlib.Data.Nat.Dist" in result
+    assert abs(result["Mathlib.Data.Nat.Dist"] - 0.0452) < 1e-9
+
+
+def test_parse_elaboration_times_seconds_unit() -> None:
+    result = _parse_elaboration_times(_LAKE_STDOUT_SECONDS)
+    assert abs(result["BigModule"] - 3.5) < 1e-9
+
+
+def test_parse_elaboration_times_empty_stdout() -> None:
+    assert _parse_elaboration_times("") == {}
+
+
+def test_parse_elaboration_times_no_profiling_block() -> None:
+    # Built line but no profiling data within 50 lines
+    stdout = "ℹ [1/1] Built SomeModule (100ms)\nBuild completed successfully (1 jobs).\n"
+    result = _parse_elaboration_times(stdout)
+    assert result == {}
 
 
 # ---------------------------------------------------------------------------
