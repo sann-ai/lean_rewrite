@@ -107,3 +107,26 @@
 - 次のステップ:
   - T006 (E2E 配線) が T003/T004/T005/T007 をすべて依存するため、残りは T007 (実例選定) と T002 (refactor-commit 抽出)。
   - elaboration 時間の正確な計測 (`set_option profiler true` or lake verbose parse) は T006 か新規タスクで扱う。
+
+## 2026-04-18T16:37:22Z — T007 — 2ldxuc
+
+- Did:
+  - Searched mathlib4 for `def`s with high `unfold` frequency using `grep` on the repo.
+  - Top candidates: `Nat.dist` (16 unfolds), `ContinuousWithinAt` (5 unfolds + 18 simp), `SemiconjBy` (5 unfolds).
+  - Selected `Nat.dist` (`Mathlib/Data/Nat/Dist.lean:23`) as the best candidate:
+    - `def dist (n m : ℕ) := n - m + (m - n)` — computable, no special modifiers, no `@[simp]`/`@[fun_prop]`.
+    - 16 proofs in `Dist.lean` all follow the exact pattern `unfold Nat.dist; lia`.
+    - 11 additional references in `Archive/Imo/Imo2024Q5.lean` (rw, simp only, simp+lia combos).
+    - 10 references in `Mathlib/Data/Ordmap/` (via lemmas, no direct unfolds).
+  - Created `experiments/001/README.md` with: definition, 3 downstream usage patterns, rationale for `abbrev`-ification, T006 input parameters, and known concerns.
+- Learned:
+  - mathlib4 recently migrated to a new module system (`module` / `public import` / `@[expose] public section` keywords). Files using this syntax are still valid Lean 4 — affects only build plumbing, not the semantics of `def`/`abbrev`.
+  - `ContinuousWithinAt` has `@[fun_prop]` attribute — making it `abbrev` could affect `fun_prop` automation. Better to avoid as first example.
+  - All 16 `unfold Nat.dist` calls in `Dist.lean` are paired with `lia`. If `Nat.dist` were `abbrev`, `lia`/`omega` could unfold it automatically, eliminating all explicit `unfold` calls in one shot.
+- Files touched:
+  - `experiments/001/README.md` (new)
+  - `TASKS.md` (T007 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T006 (E2E wiring) can now proceed. Input: `/Users/san/mathlib4`, `Mathlib/Data/Nat/Dist.lean`, `Nat.dist`. Downstream modules: `Mathlib.Data.Nat.Dist`, `Archive.Imo.Imo2024Q5`.
+  - T002 (refactor-commit dataset) remains open and unblocked.

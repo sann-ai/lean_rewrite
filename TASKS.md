@@ -67,8 +67,10 @@
 
 ## T007 — 最初の実例を選んで記録
 
-- status: claimed
+- status: done
 - claimed_by: 2ldxuc
 - claimed_at: 2026-04-18T16:21:19Z
+- done_at: 2026-04-18T16:37:22Z
 - 依存: T001
 - 内容: mathlib4 内で、下流の証明で 5 回以上 `unfold` または `simp only [<定義名>]` されている `def` を探す(reducibility が効きうる候補)。候補の定義、下流の使用例、なぜ `abbrev` 化が効くと期待するかを `experiments/001/README.md` にまとめる。T006 の入力になる。
+- 結果: `Nat.dist` を選定。`Mathlib/Data/Nat/Dist.lean` に `def dist (n m : ℕ) := n - m + (m - n)` として定義されており、同ファイル内で `unfold Nat.dist; lia` パターンが 16 件、`Archive/Imo/Imo2024Q5.lean` に 11 件の参照。`abbrev` 化で全 `unfold` 呼び出しが削除可能と期待。詳細は `experiments/001/README.md`。
