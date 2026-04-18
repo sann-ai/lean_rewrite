@@ -30,6 +30,7 @@ class ModuleMetrics:
     proof_loc: int
     elaboration_time_sec: float | None = None
     instance_context_count: int = 0
+    impl_dependency_count: int = 0
 
     @property
     def wall_time_sec(self) -> float:
@@ -96,6 +97,19 @@ class EvalResult:
         """Lines in baseline downstream files where `instance`/`deriving` co-occurs with def_name."""
         return sum(c.baseline.instance_context_count for c in self.comparisons)
 
+    @property
+    def total_impl_dependency_baseline(self) -> int:
+        """Total implementation-dependency count across all baseline downstream modules."""
+        return sum(c.baseline.impl_dependency_count for c in self.comparisons)
+
+    @property
+    def total_impl_dependency_delta(self) -> int:
+        """Candidate minus baseline implementation-dependency count (negative = less dependency)."""
+        return sum(
+            c.candidate.impl_dependency_count - c.baseline.impl_dependency_count
+            for c in self.comparisons
+        )
+
 
 def _parse_elaboration_times(stdout: str) -> dict[str, float]:
     """Parse per-module elaboration times from ``lake build`` stdout.
@@ -159,6 +173,51 @@ def _count_unfolds(source: str, def_name: str) -> int:
     return len(re.findall(pattern, source))
 
 
+def _count_impl_dependency(source: str, def_name: str) -> int:
+    """Count implementation-dependency syntax occurrences in Lean source.
+
+    Aggregates four categories of constructs that indicate downstream code
+    depends on the internal structure of ``def_name`` rather than its interface:
+
+    - ``unfold <def_name>`` tactic calls (same pattern as ``_count_unfolds``)
+    - ``.<def_name>`` dot-notation references (field or dot-function access)
+    - ``show`` / ``change`` tactic lines that mention ``def_name`` (the caller
+      needs to spell out the implementation type to make progress)
+    - ``.fst`` / ``.snd`` / ``.1`` / ``.2`` projections on lines that also
+      reference ``def_name`` (structural destructuring of the definition's value)
+
+    False positives are accepted (e.g. ``.1`` appearing on a line for
+    unrelated reasons), in exchange for simplicity.  The count is a coarse
+    proxy: a *decrease* after a rewrite indicates reduced implementation
+    dependency.
+    """
+    if not def_name:
+        return 0
+
+    name_re = re.escape(def_name)
+    name_pat = re.compile(rf"\b{name_re}\b")
+    count = 0
+
+    # unfold calls (may appear multiple times per line)
+    count += len(re.findall(rf"\bunfold\s+(?:\w+\.)*{name_re}\b", source))
+
+    # .<def_name> dot-notation (may appear multiple times per line)
+    count += len(re.findall(rf"\.{name_re}\b", source))
+
+    # show/change tactics and .fst/.snd/.1/.2 projections — per-line analysis
+    proj_pat = re.compile(r"\.(?:fst|snd|1|2)\b")
+    for line in source.splitlines():
+        if not name_pat.search(line):
+            continue
+        if re.search(r"\bshow\b", line):
+            count += 1
+        if re.search(r"\bchange\b", line):
+            count += 1
+        count += len(proj_pat.findall(line))
+
+    return count
+
+
 def _proof_loc(source: str) -> int:
     """Count non-blank lines in source text."""
     return sum(1 for line in source.splitlines() if line.strip())
@@ -193,10 +252,12 @@ def _collect_metrics(
         unfold_count = _count_unfolds(source, def_name)
         loc = _proof_loc(source)
         instance_context_count = _count_instance_context(source, def_name)
+        impl_dependency_count = _count_impl_dependency(source, def_name)
     else:
         unfold_count = 0
         loc = 0
         instance_context_count = 0
+        impl_dependency_count = 0
     elab_times = _parse_elaboration_times(build.stdout)
     return ModuleMetrics(
         module=module,
@@ -205,6 +266,7 @@ def _collect_metrics(
         proof_loc=loc,
         elaboration_time_sec=elab_times.get(module),
         instance_context_count=instance_context_count,
+        impl_dependency_count=impl_dependency_count,
     )
 
 

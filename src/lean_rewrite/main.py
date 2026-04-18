@@ -81,6 +81,8 @@ def format_report(result: EvalResult, improved: bool) -> str:
         f"Baseline unfold count:  {result.total_unfold_count_baseline}",
         f"Unfold count delta:     {result.total_unfold_count_delta:+d}",
         f"Baseline instance context count: {result.total_instance_context_baseline}",
+        f"Baseline impl dependency count: {result.total_impl_dependency_baseline}",
+        f"Impl dependency delta:   {result.total_impl_dependency_delta:+d}",
         f"Proof LOC delta:        {total_loc_delta:+d}",
         "",
     ]

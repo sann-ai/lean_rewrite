@@ -18,6 +18,7 @@ from lean_rewrite.evaluator import (
     EvalResult,
     ModuleComparison,
     ModuleMetrics,
+    _count_impl_dependency,
     _count_instance_context,
     _count_unfolds,
     _inject_profiler_option,
@@ -512,3 +513,110 @@ def test_eval_result_total_instance_context_baseline_zero() -> None:
         comparisons=[ModuleComparison(module="M", baseline=m, candidate=m)],
     )
     assert result.total_instance_context_baseline == 0
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for _count_impl_dependency
+# ---------------------------------------------------------------------------
+
+
+def test_count_impl_dependency_unfold_only() -> None:
+    # unfold myDef: 1 (unfold)
+    # unfold Nat.myDef: 1 (unfold) + 1 (.myDef dot-notation) = 2
+    src = "  unfold myDef\n  unfold Nat.myDef\n  simp\n"
+    assert _count_impl_dependency(src, "myDef") == 3
+
+
+def test_count_impl_dependency_show_change_mixed() -> None:
+    src = (
+        "  show myDef n = 0\n"
+        "  change myDef n + 1\n"
+        "  ring\n"
+    )
+    assert _count_impl_dependency(src, "myDef") == 2
+
+
+def test_count_impl_dependency_projections() -> None:
+    src = "  exact (myDef_val).1\n  exact (myDef_val).fst\n"
+    # Both lines contain "myDef" (via myDef_val — word boundary won't match "myDef" inside "myDef_val")
+    # Use a name that appears as a standalone word
+    src2 = "  exact (myDef).1\n  exact (myDef).fst\n  exact (myDef).snd\n  exact (myDef).2\n"
+    assert _count_impl_dependency(src2, "myDef") == 4
+
+
+def test_count_impl_dependency_dot_notation() -> None:
+    src = "  exact x.myDef\n  exact y.myDef\n"
+    assert _count_impl_dependency(src, "myDef") == 2
+
+
+def test_count_impl_dependency_other_def_ignored() -> None:
+    src = (
+        "  unfold otherDef\n"
+        "  show otherDef n = 0\n"
+        "  change otherDef n\n"
+        "  exact x.otherDef\n"
+    )
+    assert _count_impl_dependency(src, "myDef") == 0
+
+
+def test_count_impl_dependency_substring_no_match() -> None:
+    src = "  unfold myDefExtra\n  show myDefLong = 0\n  exact x.myDef2\n"
+    assert _count_impl_dependency(src, "myDef") == 0
+
+
+def test_count_impl_dependency_empty_def_name() -> None:
+    src = "unfold something\nshow something\n"
+    assert _count_impl_dependency(src, "") == 0
+
+
+def test_count_impl_dependency_combined_scenario() -> None:
+    src = (
+        "  unfold dist\n"
+        "  show Nat.dist n m = 0\n"
+        "  change Nat.dist n m\n"
+        "  exact (dist).1\n"
+        "  exact x.dist\n"
+    )
+    # unfold dist: 1
+    # show Nat.dist: .dist(1) + show(1) = 2
+    # change Nat.dist: .dist(1) + change(1) = 2
+    # (dist).1: .1 projection(1) = 1
+    # x.dist: .dist(1) = 1
+    # total: 7
+    assert _count_impl_dependency(src, "dist") == 7
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for EvalResult.total_impl_dependency_baseline / _delta
+# ---------------------------------------------------------------------------
+
+
+def test_eval_result_total_impl_dependency_baseline() -> None:
+    build = _fake_build(True, 1.0)
+    m1 = ModuleMetrics(module="A", build=build, unfold_count=0, proof_loc=0, impl_dependency_count=4)
+    m2 = ModuleMetrics(module="B", build=build, unfold_count=0, proof_loc=0, impl_dependency_count=3)
+    result = EvalResult(
+        baseline_worktree=Path("/b"),
+        candidate_worktree=Path("/c"),
+        def_name="foo",
+        comparisons=[
+            ModuleComparison(module="A", baseline=m1, candidate=m1),
+            ModuleComparison(module="B", baseline=m2, candidate=m2),
+        ],
+    )
+    assert result.total_impl_dependency_baseline == 7
+    assert result.total_impl_dependency_delta == 0
+
+
+def test_eval_result_total_impl_dependency_delta_negative() -> None:
+    build = _fake_build(True, 1.0)
+    base = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=0, impl_dependency_count=5)
+    cand = ModuleMetrics(module="M", build=build, unfold_count=0, proof_loc=0, impl_dependency_count=2)
+    result = EvalResult(
+        baseline_worktree=Path("/b"),
+        candidate_worktree=Path("/c"),
+        def_name="foo",
+        comparisons=[ModuleComparison(module="M", baseline=base, candidate=cand)],
+    )
+    assert result.total_impl_dependency_baseline == 5
+    assert result.total_impl_dependency_delta == -3

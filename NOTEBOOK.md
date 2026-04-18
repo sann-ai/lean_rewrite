@@ -633,3 +633,37 @@
 - Next steps:
   - To reach Tier 2: extend dataset or fix before-state reconstruction strategy. One promising approach: checkout before-state in a worktree based on `sha^` (full worktree at parent commit) instead of overwriting a HEAD worktree with a single file.
   - T022/T023/T024 are unblocked and target Tier 3 groundwork.
+
+## 2026-04-18T22:47:16Z — T022 — FAKwH7
+
+- Did:
+  - Added `_count_impl_dependency(source, def_name) -> int` to `src/lean_rewrite/evaluator.py`.
+    Counts four categories: `unfold <def_name>` calls, `.<def_name>` dot-notation occurrences,
+    `show`/`change` tactic lines that mention `def_name` (per-line), and `.fst`/`.snd`/`.1`/`.2`
+    projections on lines that also reference `def_name` (per-occurrence). Note: `Nat.def_name`
+    in source matches both the unfold pattern and the dot-notation pattern — this double-counting
+    is intentional (it IS two references: the qualified name and the projection).
+  - Added `impl_dependency_count: int = 0` field to `ModuleMetrics`.
+  - Added `total_impl_dependency_baseline` and `total_impl_dependency_delta` properties to `EvalResult`.
+  - Updated `_collect_metrics()` to compute `impl_dependency_count` and pass it to `ModuleMetrics`.
+  - Updated `format_report()` in `main.py` to include `Baseline impl dependency count:` and
+    `Impl dependency delta:` lines.
+  - Added `_count_impl_dependency` to the imports in `tests/test_evaluator.py`.
+  - Added 10 new unit tests (6 for `_count_impl_dependency`, 2 for `EvalResult` properties).
+  - All 172 tests pass (up from 162).
+- Learned:
+  - `Nat.def_name` in qualified form (e.g., `show Nat.dist n m = 0`) matches both the
+    `unfold` pattern and the `\.def_name` dot-notation pattern simultaneously. This is
+    acceptable because both are independent implementation-dependency signals.
+  - The function is intentionally coarse (false positives on `.1`/`.2` accepted per task spec).
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (new `_count_impl_dependency`, new field `impl_dependency_count`,
+    new properties `total_impl_dependency_baseline`/`total_impl_dependency_delta`,
+    updated `_collect_metrics`)
+  - `src/lean_rewrite/main.py` (updated `format_report`)
+  - `tests/test_evaluator.py` (import `_count_impl_dependency`, 10 new tests)
+  - `TASKS.md` (T022 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T023 (add_simp_attr transformer) and T024 (find simp-eligible defs) are both unblocked.
+  - The new `impl_dependency_count` metric is ready for use in Tier 3 E2E validation runs.

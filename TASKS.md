@@ -329,9 +329,10 @@
 
 ## T022 — Tier 3 メトリクス拡張: 実装依存構文カウンタを evaluator に追加
 
-- status: claimed
+- status: done
 - claimed_by: FAKwH7
 - claimed_at: 2026-04-18T22:43:31Z
+- done_at: 2026-04-18T22:47:16Z
 - 依存: T005, T011
 - 内容:
   Tier 3 は「下流の実装依存指標の減少が数値として示せる」ことを要求する。現行の `unfold` カウントのみでは不十分で、`show`/`change`/`.1`・`.2` プロジェクション/内部補題参照も含めた総合指標が必要。
