@@ -1,0 +1,10 @@
+{"file": "Mathlib/Data/Real/Sqrt.lean", "def_name": "sqrt", "simp_lemma_count": 29, "downstream_unfold_count": 4, "is_noncomputable": true}
+{"file": "Mathlib/Algebra/Order/Archimedean/Class.lean", "def_name": "mk", "simp_lemma_count": 28, "downstream_unfold_count": 1, "is_noncomputable": false}
+{"file": "Mathlib/Data/Nat/MaxPowDiv.lean", "def_name": "divMaxPow", "simp_lemma_count": 28, "downstream_unfold_count": 1, "is_noncomputable": false}
+{"file": "Mathlib/Algebra/Polynomial/Degree/TrailingDegree.lean", "def_name": "natTrailingDegree", "simp_lemma_count": 25, "downstream_unfold_count": 1, "is_noncomputable": false}
+{"file": "Mathlib/RingTheory/MvPolynomial/MonomialOrder.lean", "def_name": "degree", "simp_lemma_count": 22, "downstream_unfold_count": 4, "is_noncomputable": true}
+{"file": "Mathlib/GroupTheory/OrderOfElement.lean", "def_name": "orderOf", "simp_lemma_count": 23, "downstream_unfold_count": 2, "is_noncomputable": true}
+{"file": "Mathlib/Data/Seq/Defs.lean", "def_name": "cons", "simp_lemma_count": 24, "downstream_unfold_count": 1, "is_noncomputable": false}
+{"file": "Mathlib/Algebra/Polynomial/Degree/Defs.lean", "def_name": "natDegree", "simp_lemma_count": 22, "downstream_unfold_count": 2, "is_noncomputable": false}
+{"file": "Mathlib/Data/Fin/SuccPred.lean", "def_name": "succAbove", "simp_lemma_count": 23, "downstream_unfold_count": 1, "is_noncomputable": false}
+{"file": "Mathlib/CategoryTheory/Sites/Sieves.lean", "def_name": "Presieve", "simp_lemma_count": 23, "downstream_unfold_count": 1, "is_noncomputable": false}

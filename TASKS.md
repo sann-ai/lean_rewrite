@@ -371,9 +371,10 @@
 
 ## T024 — Tier 3 候補発掘: mathlib4 から `@[simp]` 付与候補 def を収集
 
-- status: claimed
+- status: done
 - claimed_by: Gfncfb
 - claimed_at: 2026-04-18T23:14:39Z
+- done_at: 2026-04-18T23:19:23Z
 - 依存: T001, T007
 - 内容:
   T023 の `add_simp_attr` 変換をテストする具体的な mathlib def を見つけるためのデータ収集タスク。

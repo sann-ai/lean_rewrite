@@ -706,3 +706,35 @@
   - T024 (find simp-eligible defs in mathlib4) is unblocked — supply concrete targets for Tier 3 E2E.
   - Tier 3 E2E run: take a candidate from T024 output, run pipeline with `--transform simp-attr
     --remove-unfolds`, confirm impl_dependency_delta < 0.
+
+## 2026-04-18T23:19:23Z — T024 — Gfncfb
+
+- Did:
+  - Created `scripts/find_simp_eligible_defs.py`. Walks all 7933 .lean files in `/Users/san/mathlib4/Mathlib/`,
+    extracts top-level `def` declarations lacking `@[simp]`, then checks (b) ≥1 `@[simp]` lemma/theorem
+    in the same file references the def name, and (c) ≥1 `unfold def_name` in the same file.
+    206 candidates found; deduplicated by name; top 10 written to `data/simp_eligible_defs.jsonl`.
+  - Wrote `experiments/003_simp_pilot/README.md` with detailed analysis of top 3:
+    1. `Polynomial.natDegree` (unfold=2, simp=22) — `def natDegree (p : R[X]) := (degree p).unbotD 0`
+    2. `Nat.divMaxPow` (unfold=1, simp=28) — `def divMaxPow (n p : ℕ) := (maxPowDvdDiv p n).snd`
+    3. `Fin.succAbove` (unfold=1, simp=23) — `def succAbove p i := if castSucc i < p then i.castSucc else i.succ`
+  - Updated `TASKS.md` (T024 → done).
+- Learned:
+  - `Real.sqrt` ranked #1 (4 unfolds, 29 simp lemmas) but is `@[irreducible]` — adding `@[simp]` to an
+    irreducible def would conflict with its intent (explicit `unfold` bypasses irreducibility; simp would not).
+    Excluded from README recommendations.
+  - `Fin.succAbove` is a strong candidate: its if-then-else body makes `split_ifs` relevant, and the
+    characterizing lemmas (`succAbove_of_castSucc_lt` etc.) cover both branches — `@[simp]` would
+    make them applicable without `unfold`.
+  - `mk` and `cons` were excluded from README as too generic (likely constructors).
+  - Script is single-file only (no cross-directory scanning). This is conservative but avoids false positives.
+- Files touched:
+  - `scripts/find_simp_eligible_defs.py` (new)
+  - `data/simp_eligible_defs.jsonl` (new, 10 entries)
+  - `experiments/003_simp_pilot/README.md` (new)
+  - `TASKS.md` (T024 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 3 E2E run: take `natDegree` or `succAbove` as target, run pipeline with
+    `--transform simp-attr --remove-unfolds`, confirm `impl_dependency_delta < 0`.
+  - Optionally extend `find_simp_eligible_defs.py` to cross-directory scanning to find more candidates.
