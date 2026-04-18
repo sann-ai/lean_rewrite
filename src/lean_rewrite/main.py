@@ -20,7 +20,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev
+from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, remove_redundant_unfolds
 from lean_rewrite.evaluator import EvalResult, evaluate
 
 
@@ -115,6 +115,10 @@ def make_patch(target_file: str, original: str, candidate: str) -> str:
     return "".join(diff)
 
 
+def _module_to_file(module: str) -> str:
+    return module.replace(".", "/") + ".lean"
+
+
 def run_pipeline(
     mathlib: Path,
     target_file: str,
@@ -124,6 +128,7 @@ def run_pipeline(
     timeout: float | None = None,
     lake: str = "lake",
     output_dir: Path | None = None,
+    remove_unfolds: bool = False,
 ) -> int:
     """Run the full pipeline. Returns 0 on improvement, 1 on reject, 2 on error."""
     src_path = mathlib / target_file
@@ -149,6 +154,15 @@ def run_pipeline(
         _git_worktree_add(mathlib, wt_path)
         _lake_cache_get(wt_path, lake=lake)
         (wt_path / target_file).write_text(candidate_source, encoding="utf-8")
+
+        if remove_unfolds:
+            for mod in downstream:
+                ds_path = wt_path / _module_to_file(mod)
+                if ds_path.exists():
+                    original_ds = ds_path.read_text(encoding="utf-8")
+                    modified_ds = remove_redundant_unfolds(original_ds, def_name)
+                    if modified_ds != original_ds:
+                        ds_path.write_text(modified_ds, encoding="utf-8")
 
         result = evaluate(
             baseline_worktree=mathlib,
@@ -205,6 +219,10 @@ def main() -> None:
         "--output-dir", type=Path, default=None,
         help="Write report.txt (and candidate.patch if improved) here"
     )
+    parser.add_argument(
+        "--remove-unfolds", action="store_true", default=False,
+        help="Also remove redundant `unfold <def-name>` calls from downstream files"
+    )
 
     args = parser.parse_args()
     sys.exit(
@@ -216,6 +234,7 @@ def main() -> None:
             timeout=args.timeout,
             lake=args.lake,
             output_dir=args.output_dir,
+            remove_unfolds=args.remove_unfolds,
         )
     )
 

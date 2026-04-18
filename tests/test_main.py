@@ -281,3 +281,85 @@ def test_run_pipeline_writes_output_dir(mock_eval, mock_add, mock_remove, tmp_pa
     )
     assert (out_dir / "report.txt").exists()
     assert (out_dir / "candidate.patch").exists()
+
+
+@patch("lean_rewrite.main._git_worktree_remove")
+@patch("lean_rewrite.main._git_worktree_add")
+@patch("lean_rewrite.main.evaluate")
+def test_run_pipeline_remove_unfolds_modifies_downstream(mock_eval, mock_add, mock_remove, tmp_path):
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text("def foo := 1\n")
+
+    ds_rel = "Mathlib/Bar.lean"
+    ds_with_unfolds = "theorem bar : True := by\n  unfold foo\n  trivial\n"
+
+    def _side_effect_add(mathlib, dest):
+        (dest / "Foo.lean").parent.mkdir(parents=True, exist_ok=True)
+        (dest / "Foo.lean").write_text("")
+        (dest / ds_rel).parent.mkdir(parents=True, exist_ok=True)
+        (dest / ds_rel).write_text(ds_with_unfolds)
+
+    mock_add.side_effect = _side_effect_add
+
+    seen_ds_content = []
+
+    def _capture_eval(*, candidate_worktree, **kw):
+        ds_path = candidate_worktree / ds_rel
+        if ds_path.exists():
+            seen_ds_content.append(ds_path.read_text())
+        return _eval_result([_comparison(base_unfold=1, cand_unfold=0)])
+
+    mock_eval.side_effect = _capture_eval
+
+    rc = run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="foo",
+        downstream=["Mathlib.Bar"],
+        remove_unfolds=True,
+    )
+
+    assert rc == 0
+    assert seen_ds_content, "evaluate was never called"
+    assert "unfold foo" not in seen_ds_content[0]
+    assert "trivial" in seen_ds_content[0]
+
+
+@patch("lean_rewrite.main._git_worktree_remove")
+@patch("lean_rewrite.main._git_worktree_add")
+@patch("lean_rewrite.main.evaluate")
+def test_run_pipeline_without_remove_unfolds_leaves_downstream(mock_eval, mock_add, mock_remove, tmp_path):
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text("def foo := 1\n")
+
+    ds_rel = "Mathlib/Bar.lean"
+    ds_with_unfolds = "theorem bar : True := by\n  unfold foo\n  trivial\n"
+
+    def _side_effect_add(mathlib, dest):
+        (dest / "Foo.lean").parent.mkdir(parents=True, exist_ok=True)
+        (dest / "Foo.lean").write_text("")
+        (dest / ds_rel).parent.mkdir(parents=True, exist_ok=True)
+        (dest / ds_rel).write_text(ds_with_unfolds)
+
+    mock_add.side_effect = _side_effect_add
+
+    seen_ds_content = []
+
+    def _capture_eval(*, candidate_worktree, **kw):
+        ds_path = candidate_worktree / ds_rel
+        if ds_path.exists():
+            seen_ds_content.append(ds_path.read_text())
+        return _eval_result([_comparison(base_unfold=1, cand_unfold=1)])
+
+    mock_eval.side_effect = _capture_eval
+
+    run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="foo",
+        downstream=["Mathlib.Bar"],
+        remove_unfolds=False,
+    )
+
+    assert seen_ds_content, "evaluate was never called"
+    assert "unfold foo" in seen_ds_content[0]

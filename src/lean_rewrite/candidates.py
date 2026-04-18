@@ -149,6 +149,34 @@ def def_to_abbrev(source: str, def_name: str) -> str:
     )
 
 
+def remove_redundant_unfolds(source: str, def_name: str) -> str:
+    """Remove ``unfold <def_name>`` tactic calls from Lean source.
+
+    - Standalone ``unfold <def_name>`` lines are deleted entirely.
+    - ``unfold <def_name>; rest`` lines have the prefix removed; ``rest`` is kept.
+    - Lines for other definition names are not touched.
+    """
+    name_pat = re.escape(def_name)
+    unfold_re = re.compile(rf'(\s*)unfold\s+{name_pat}(?:\s*;\s*(.*))?')
+
+    lines = source.splitlines(keepends=True)
+    result = []
+    for line in lines:
+        stripped = line.rstrip('\n')
+        eol = line[len(stripped):]
+        m = unfold_re.fullmatch(stripped)
+        if m:
+            indent = m.group(1)
+            rest = m.group(2)  # None if no semicolon part
+            if rest is not None and rest.strip():
+                result.append(indent + rest + eol)
+            # else: remove line entirely (standalone unfold or `unfold X;` with no rest)
+        else:
+            result.append(line)
+
+    return ''.join(result)
+
+
 def _has_reducible_attr_directly_above(prefix: str) -> bool:
     """Return True if the last non-blank line of ``prefix`` is a ``@[reducible]``.
 

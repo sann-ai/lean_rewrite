@@ -1,10 +1,10 @@
-"""Tests for ``lean_rewrite.candidates.def_to_abbrev``."""
+"""Tests for ``lean_rewrite.candidates.def_to_abbrev`` and ``remove_redundant_unfolds``."""
 
 from __future__ import annotations
 
 import pytest
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev
+from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, remove_redundant_unfolds
 
 
 def test_basic_def_to_abbrev() -> None:
@@ -178,3 +178,71 @@ def test_indented_declaration_keeps_indent() -> None:
         "  @[reducible]\n"
         "  noncomputable def foo : Nat := 0\n"
     )
+
+
+# ---------------------------------------------------------------------------
+# remove_redundant_unfolds
+# ---------------------------------------------------------------------------
+
+def test_remove_standalone_unfold_line() -> None:
+    src = "theorem bar : True := by\n  unfold Nat.dist\n  trivial\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert out == "theorem bar : True := by\n  trivial\n"
+    assert "unfold Nat.dist" not in out
+
+
+def test_remove_unfold_with_trailing_semicolon_only() -> None:
+    src = "theorem bar : True := by\n  unfold Nat.dist;\n  trivial\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert "unfold Nat.dist" not in out
+    assert "trivial" in out
+
+
+def test_remove_unfold_semicolon_rest_preserved() -> None:
+    src = "theorem bar : True := by\n  unfold Nat.dist; ring\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert "unfold Nat.dist" not in out
+    assert "ring" in out
+    # indent must be preserved
+    assert "  ring" in out
+
+
+def test_remove_multiple_unfold_lines() -> None:
+    src = (
+        "theorem a : True := by\n"
+        "  unfold Nat.dist\n"
+        "  trivial\n"
+        "theorem b : True := by\n"
+        "  unfold Nat.dist\n"
+        "  trivial\n"
+    )
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert out.count("unfold Nat.dist") == 0
+
+
+def test_remove_unfold_indented() -> None:
+    src = "    unfold Nat.dist\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert out == ""
+
+
+def test_does_not_touch_other_def_unfolds() -> None:
+    src = "theorem bar : True := by\n  unfold Nat.dist\n  unfold Nat.other\n  trivial\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert "unfold Nat.dist" not in out
+    assert "unfold Nat.other" in out
+
+
+def test_does_not_touch_unfold_with_longer_name() -> None:
+    # unfold Nat.distance should NOT be removed when def_name is "Nat.dist"
+    src = "  unfold Nat.distance\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert out == src
+
+
+def test_nat_dist_example_removes_all_unfolds() -> None:
+    # Realistic Nat.dist scenario: 16 unfold calls should all be removed
+    src = "theorem t : True := by\n" + "  unfold Nat.dist\n" * 16 + "  trivial\n"
+    out = remove_redundant_unfolds(src, "Nat.dist")
+    assert "unfold Nat.dist" not in out
+    assert "trivial" in out

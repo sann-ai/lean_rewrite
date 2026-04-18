@@ -229,3 +229,26 @@
 - Next steps:
   - T009 (remove redundant `unfold` calls from downstream) and T010 (Tier 2 validation) are both unblocked. T009 is the most direct path to demonstrating actual proof simplification.
   - Re-running `experiments/001/run1` will now return ACCEPTED for `Nat.dist` (baseline unfolds=16 > 0).
+
+## 2026-04-18T18:32:50Z — T009 — PaTT9R
+
+- Did:
+  - Added `remove_redundant_unfolds(source: str, def_name: str) -> str` to `src/lean_rewrite/candidates.py`. Uses `re.fullmatch` per line to match `unfold <def_name>` patterns: standalone lines are deleted; `unfold X; rest` lines have the unfold prefix stripped, preserving `rest` with its original indent. `re.fullmatch` naturally enforces name-boundary safety (no partial-name matches like `Nat.distance` when looking for `Nat.dist`).
+  - Updated `src/lean_rewrite/main.py`: imported `remove_redundant_unfolds`; added `_module_to_file(module)` helper (converts `Mathlib.Data.Nat.Dist` → `Mathlib/Data/Nat/Dist.lean`); added `remove_unfolds: bool = False` parameter to `run_pipeline()`; when enabled, iterates over downstream modules, applies `remove_redundant_unfolds` to each existing file in the candidate worktree before calling `evaluate()`; added `--remove-unfolds` CLI flag.
+  - Added 8 unit tests to `tests/test_candidates.py` for `remove_redundant_unfolds` (standalone line, trailing semicolon, semicolon+rest, multiple lines, indented, other def untouched, longer-name safety, Nat.dist realistic scenario).
+  - Added 2 integration tests to `tests/test_main.py` for `run_pipeline` with `remove_unfolds=True/False`, using a `side_effect` on `mock_eval` to inspect the candidate worktree's downstream file content at evaluation time.
+  - All 94 tests pass (9.40s).
+- Learned:
+  - `re.fullmatch` is the cleanest tool here: it enforces that the entire line matches, automatically preventing partial-name collisions without extra lookahead/lookbehind. No need to add explicit `\b` after the def_name pattern.
+  - The "capture inside mock side_effect" pattern (reading worktree files from within the `evaluate` mock's side_effect, before cleanup) is the right way to test worktree-level side effects without refactoring production code.
+  - `_module_to_file` must handle module names with multiple dots (e.g. `Mathlib.Data.Nat.Dist`). Simple `.replace(".", "/") + ".lean"` works correctly.
+- Files touched:
+  - `src/lean_rewrite/candidates.py` (+ `remove_redundant_unfolds`)
+  - `src/lean_rewrite/main.py` (+ `_module_to_file`, `remove_unfolds` param, `--remove-unfolds` CLI flag)
+  - `tests/test_candidates.py` (+ 8 new tests)
+  - `tests/test_main.py` (+ 2 new tests)
+  - `TASKS.md` (T009 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T010 (Tier 2 validation) and T011 (elaboration time metrics) are both unblocked.
+  - The natural next E2E test: run `python -m lean_rewrite.main --mathlib /Users/san/mathlib4 --file Mathlib/Data/Nat/Dist.lean --def-name dist --downstream Mathlib.Data.Nat.Dist --timeout 900 --output-dir experiments/001/run2 --remove-unfolds`. This should produce ACCEPTED with `unfold Nat.dist` removed from `Dist.lean` in the candidate worktree, and the downstream build should still succeed.
