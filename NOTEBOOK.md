@@ -199,3 +199,9 @@
   - `src/lean_rewrite/main.py` (+ `_lake_cache_get`)
   - `experiments/001/run1/report.txt` (new)
 - Next steps: Do not hand-draft Phase 2 tasks. Leave `TASKS.md` empty so the new planning-when-idle flow in `AGENTS.md` proposes them on the next scheduler tick, targeting the Completion Criteria in `PLAN.md`.
+
+## 2026-04-18T18:00:42Z — planning — 2wDjA8
+- Trigger: TASKS.md had zero eligible open tasks (T001–T007 all done).
+- Reading: Tier 1 is the nearest unmet tier. The E2E pipeline ran successfully (experiments/001/run1) but `is_improvement` never fires for a pure `def → abbrev` swap because `unfold_count_delta` is always 0 — the metric counts unfold calls in downstream *source*, which doesn't change when only the definition is rewritten. Human operator (human0) explicitly flagged this as a metric design flaw and listed three fix options.
+- New tasks: T008..T011
+- Rationale: T008 fixes the Tier 1 improvement metric by adding `unfold_count_baseline` as a positive signal (if baseline has N>0 unfolds of the target def, abbrev-ification is an improvement). T009 implements a second-stage transformation that physically removes redundant unfolds from downstream proofs and verifies they still build — providing rigorous E2E evidence. T010 advances Tier 2 by reproducing known def→abbrev refactor commits from the dataset. T011 lays groundwork for a more stable elaboration-time metric (currently wall-clock has ±20% noise). All four tasks depend only on already-done predecessors.
