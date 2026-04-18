@@ -18,6 +18,7 @@ lean-packages/
 .DS_Store
 .idea/
 .vscode/
+.claude/
 
 # 一時ファイル
 *.tmp
