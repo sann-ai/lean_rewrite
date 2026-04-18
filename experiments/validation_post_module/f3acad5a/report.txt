@@ -1,0 +1,23 @@
+SHA:                  f3acad5a9bb1286f738e664e7e79862bc49d7ab4
+Commit:               feat: add missing rfl lemmas for WriterT.run (#36497)
+File:                 Mathlib/Control/Monad/Writer.lean
+Definition:           runThe
+remove_redundant_unfolds: no (no unfolds found)
+
+Definition:             runThe
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-t018-f3acad5a-mw8d8jyl/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-t018-f3acad5a-mw8d8jyl/candidate
+All builds succeeded:   True
+Wall time delta (sum):  +0.08s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Control.Monad.Writer
+    Both succeeded: True
+    Wall time delta:   +0.08s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no unfold reduction and no baseline unfold calls

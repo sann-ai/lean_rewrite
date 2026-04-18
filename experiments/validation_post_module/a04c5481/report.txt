@@ -1,0 +1,22 @@
+SHA:                  a04c548191f50524d96c1f44d3cc4515436d6c5a
+Commit:               feat(GroupTheory/FreeGroup/Basic): deprecate `FreeGroup Empty ≃ Unit` using `Equ
+File:                 Mathlib/GroupTheory/FreeGroup/Basic.lean
+Definition:           freeGroupEmptyEquivUnit
+remove_redundant_unfolds: no (no unfolds found)
+
+Definition:             freeGroupEmptyEquivUnit
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-t018-a04c5481-jy23hxsr/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-val-t018-a04c5481-jy23hxsr/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.GroupTheory.FreeGroup.Basic
+    Both succeeded: False
+    Baseline FAILED (rc=1)
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed
