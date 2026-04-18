@@ -26,9 +26,9 @@
 
 ## T003 — Lean runner ラッパ (Python)
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: jpjwg4
+- claimed_at: 2026-04-18T14:37:42Z
 - 依存: なし(T001 の完了後に実動作確認可)
 - 内容: `src/lean_rewrite/runner.py` を実装。mathlib worktree のパスとモジュール名を受け取り、`lake build <module>` を実行し、stdout / stderr / 終了コード / 壁時計時間を構造化して返す。タイムアウト対応必須。pytest で成功・失敗の簡単なケースを追加。
 
