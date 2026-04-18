@@ -34,9 +34,9 @@
 
 ## T004 — `def → abbrev` 候補ジェネレータ
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: dndyij
+- claimed_at: 2026-04-18T23:15:00Z
 - 依存: なし
 - 内容: `src/lean_rewrite/candidates.py` に `def_to_abbrev(source: str, def_name: str) -> str` を実装。指定名の `def` を `abbrev` に書き換える(または `@[reducible]` 属性を付与)。対応すべきケース: アトリビュート保持、doc コメント保持、`noncomputable` / `protected` / `private` の保持、ジェネリクス(宇宙変数含む)の保持。各ケースにユニットテスト。
 
