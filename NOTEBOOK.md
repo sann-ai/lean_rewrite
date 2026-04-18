@@ -369,3 +369,30 @@
   - Tier 1 is now fully satisfied: E2E pipeline ran, both builds succeeded, ACCEPTED with candidate.patch.
   - T012 (post-module-system dataset) remains open — needed for Tier 2 validation.
   - Future: handle inline `by unfold X; tac` forms (not just standalone lines) in `remove_redundant_unfolds`.
+
+## 2026-04-18T20:04:25Z — T012 — vzwHxf
+
+- Did:
+  - Created `scripts/fetch_refactor_commits_post_module.py`. Scans mathlib4 git log after SHA `6a54a80825` (module-system introduction) for def↔abbrev changes. Two key design decisions vs. the original script:
+    1. **Broader commit message filter**: added `chore` prefix and `abbrev` keyword match (original only had `refactor`/`perf`). Post-module def→abbrev changes in mathlib typically use `chore` prefix.
+    2. **Relaxed block-change constraint**: requires exactly one def↔abbrev block change per commit (other block changes allowed), rather than exactly one changed block total. This is necessary because def→abbrev commits often also remove redundant instance declarations.
+  - Scanned 1852 candidate commits; found 4 records:
+    - `6f0e175f` — `def→abbrev SkewPolynomial` (`Mathlib/Algebra/SkewPolynomial/Basic.lean`)
+    - `1627af05` — `def→abbrev Q` (`Archive/Sensitivity.lean`)
+    - `65590a2c` — `def→abbrev reverseRecOn` (`Mathlib/Data/List/Induction.lean`)
+    - `6eabe6b2` — `abbrev→def FiniteAdeleRing` (`Mathlib/RingTheory/DedekindDomain/FiniteAdeleRing.lean`)
+  - Wrote `data/refactor_commits_post_module.jsonl` (4 records, same schema as `refactor_commits.jsonl`).
+  - Added `tests/test_fetch_refactor_post_module.py` with 20 unit tests (keyword extraction, def↔abbrev filter, SHA filter, process_commit dispatch). All 128 tests pass.
+- Learned:
+  - Post-module-system def→abbrev commits are rare: only 4 in ~4600 commits since Dec 2024. Most def→abbrev changes are "big bang" refactors touching many files (e.g., `Ideal.span` touched 14 files) and get filtered by the single-file constraint.
+  - The `set_option backward.isDefEq.respectTransparency false in` annotation in Lean source causes the surrounding def block content to differ even when the def itself is unchanged — a known boundary artifact of `extract_all_def_blocks`.
+  - `reverseRecOn` (`65590a2c`) is technically a `def→abbrev` change but `_get_def_keyword` correctly identifies both keywords by searching for the header line within the block (which may start with doc comment or attributes).
+- Files touched:
+  - `scripts/fetch_refactor_commits_post_module.py` (new)
+  - `tests/test_fetch_refactor_post_module.py` (new)
+  - `data/refactor_commits_post_module.jsonl` (new, 4 records)
+  - `TASKS.md` (T012 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 2 validation can now use `data/refactor_commits_post_module.jsonl` to run the pipeline on real post-module before-states. A follow-up task should write `scripts/validate_refactors_post_module.py` analogous to `validate_refactors.py` (T010) but using this new dataset.
+  - With only 4 records, consider whether to extend the scan to non-refactor/perf/chore commits (e.g., `feat` commits that also do def→abbrev), or expand the date range. The current 4 entries are enough for Tier 2 but leave little margin.

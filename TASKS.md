@@ -143,9 +143,10 @@
 
 ## T012 — post-module-system def→abbrev データセット抽出
 
-- status: claimed
+- status: done
 - claimed_by: vzwHxf
 - claimed_at: 2026-04-18T19:55:18Z
+- done_at: 2026-04-18T20:04:25Z
 - 依存: T001, T002
 - 内容:
   T010 で判明した問題: `data/refactor_commits.jsonl` の大半は 2024-12 以前のコミット（旧 import 構文）であり、現在の toolchain (`v4.30.0-rc2`) でビルドできない。Tier 2 検証には現行 toolchain と互換なエントリが必要。
