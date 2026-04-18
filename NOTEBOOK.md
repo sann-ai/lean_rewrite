@@ -205,3 +205,27 @@
 - Reading: Tier 1 is the nearest unmet tier. The E2E pipeline ran successfully (experiments/001/run1) but `is_improvement` never fires for a pure `def → abbrev` swap because `unfold_count_delta` is always 0 — the metric counts unfold calls in downstream *source*, which doesn't change when only the definition is rewritten. Human operator (human0) explicitly flagged this as a metric design flaw and listed three fix options.
 - New tasks: T008..T011
 - Rationale: T008 fixes the Tier 1 improvement metric by adding `unfold_count_baseline` as a positive signal (if baseline has N>0 unfolds of the target def, abbrev-ification is an improvement). T009 implements a second-stage transformation that physically removes redundant unfolds from downstream proofs and verifies they still build — providing rigorous E2E evidence. T010 advances Tier 2 by reproducing known def→abbrev refactor commits from the dataset. T011 lays groundwork for a more stable elaboration-time metric (currently wall-clock has ±20% noise). All four tasks depend only on already-done predecessors.
+
+## 2026-04-18T18:17:33Z — T008 — k9Xm2P
+
+- Did:
+  - Added `total_unfold_count_baseline` property to `EvalResult` in `evaluator.py`: sums `baseline.unfold_count` across all comparisons.
+  - Updated `is_improvement()` in `main.py`: new condition is `all_succeeded AND (total_unfold_count_delta < 0 OR total_unfold_count_baseline > 0)`. Rationale: if baseline has N>0 `unfold <def_name>` calls, abbrev-ification makes them redundant no-ops — this counts as an improvement signal.
+  - Added `Baseline unfold count: N` line to `format_report()` output.
+  - Updated rejection reason message to "no unfold reduction and no baseline unfold calls".
+  - Updated `tests/test_main.py`: replaced two tests that assumed delta-only logic (they had non-zero base_unfold which now triggers True) with four tests covering zero-baseline rejection, zero-baseline-increase rejection, non-zero-baseline acceptance, and the Nat.dist scenario (base=16, delta=0 → ACCEPTED).
+  - Added `tests/test_evaluator.py`: two new tests for `total_unfold_count_baseline` — one for multi-module summation (10+6=16), one for the Nat.dist scenario.
+  - All 84 tests pass (8.31s).
+- Learned:
+  - The logic change required updating 3 existing tests (test_no_improvement_when_no_unfold_reduction, test_no_improvement_when_unfold_increases, test_run_pipeline_reject) — all had non-zero base_unfold values that now correctly trigger ACCEPTED. Reframing those tests with base_unfold=0 preserved the intent (no-signal → reject) without conflicting with the new logic.
+  - `total_unfold_count_baseline` lives on `EvalResult`, not `ModuleComparison` — it aggregates the baseline side of each comparison's `unfold_count`, which is already computed per-module by `_collect_metrics`.
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (+ `total_unfold_count_baseline` property on `EvalResult`)
+  - `src/lean_rewrite/main.py` (+ updated `is_improvement`, `format_report` rejection reason, `Baseline unfold count` line)
+  - `tests/test_evaluator.py` (+ 2 new tests)
+  - `tests/test_main.py` (+ 4 new tests, 3 tests updated for new logic)
+  - `TASKS.md` (T008 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T009 (remove redundant `unfold` calls from downstream) and T010 (Tier 2 validation) are both unblocked. T009 is the most direct path to demonstrating actual proof simplification.
+  - Re-running `experiments/001/run1` will now return ACCEPTED for `Nat.dist` (baseline unfolds=16 > 0).

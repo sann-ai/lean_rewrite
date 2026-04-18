@@ -83,6 +83,11 @@ class EvalResult:
     def total_unfold_count_delta(self) -> int:
         return sum(c.unfold_count_delta for c in self.comparisons)
 
+    @property
+    def total_unfold_count_baseline(self) -> int:
+        """Total unfold occurrences of the target def in baseline downstream files."""
+        return sum(c.baseline.unfold_count for c in self.comparisons)
+
 
 def _module_to_path(worktree: Path, module: str) -> Path:
     """'Mathlib.Logic.Basic' → '<worktree>/Mathlib/Logic/Basic.lean'."""

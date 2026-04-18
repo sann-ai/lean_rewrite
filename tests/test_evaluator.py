@@ -180,6 +180,46 @@ def test_eval_result_empty() -> None:
     assert result.all_succeeded is True
     assert result.total_wall_time_delta == 0.0
     assert result.total_unfold_count_delta == 0
+    assert result.total_unfold_count_baseline == 0
+
+
+def test_eval_result_total_unfold_count_baseline() -> None:
+    """total_unfold_count_baseline sums baseline unfold_count across all modules."""
+    cmp1 = ModuleComparison(
+        module="A",
+        baseline=_fake_metrics(True, 1.0, unfolds=10),
+        candidate=_fake_metrics(True, 1.0, unfolds=10),  # delta=0, but baseline=10
+    )
+    cmp2 = ModuleComparison(
+        module="B",
+        baseline=_fake_metrics(True, 1.0, unfolds=6),
+        candidate=_fake_metrics(True, 1.0, unfolds=6),
+    )
+    result = EvalResult(
+        baseline_worktree=Path("/b"),
+        candidate_worktree=Path("/c"),
+        def_name="foo",
+        comparisons=[cmp1, cmp2],
+    )
+    assert result.total_unfold_count_baseline == 16
+    assert result.total_unfold_count_delta == 0
+
+
+def test_eval_result_baseline_count_nat_dist_scenario() -> None:
+    """Nat.dist scenario: 16 baseline unfolds, delta=0 → baseline=16."""
+    cmp = ModuleComparison(
+        module="Mathlib.Data.Nat.Dist",
+        baseline=_fake_metrics(True, 15.0, unfolds=16),
+        candidate=_fake_metrics(True, 15.0, unfolds=16),
+    )
+    result = EvalResult(
+        baseline_worktree=Path("/mathlib"),
+        candidate_worktree=Path("/cand"),
+        def_name="dist",
+        comparisons=[cmp],
+    )
+    assert result.total_unfold_count_baseline == 16
+    assert result.all_succeeded is True
 
 
 # ---------------------------------------------------------------------------

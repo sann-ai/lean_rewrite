@@ -80,9 +80,10 @@
 
 ## T008 — `is_improvement` メトリクス修正: baseline unfold カウントを改善シグナルに使う
 
-- status: claimed
+- status: done
 - claimed_by: k9Xm2P
 - claimed_at: 2026-04-18T18:14:25Z
+- done_at: 2026-04-18T18:17:33Z
 - 依存: T006
 - 内容:
   `experiments/001/run1` の E2E 実行で判明した問題: `is_improvement()` が `unfold_count_delta < 0` を条件にしているが、`def → abbrev` 変換では下流ソースを書き換えないため delta は常に 0 になり、REJECTED が常に返る。

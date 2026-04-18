@@ -55,8 +55,15 @@ def _git_worktree_remove(mathlib: Path, dest: Path) -> None:
 
 
 def is_improvement(result: EvalResult) -> bool:
-    """True when the candidate strictly reduces unfold count with no build failures."""
-    return result.all_succeeded and result.total_unfold_count_delta < 0
+    """True when builds all succeed and unfold usage improves.
+
+    Improvement means either the candidate source has fewer unfold calls
+    (delta < 0) OR the baseline already had unfold calls that abbrev-ification
+    makes redundant no-ops (baseline > 0).
+    """
+    return result.all_succeeded and (
+        result.total_unfold_count_delta < 0 or result.total_unfold_count_baseline > 0
+    )
 
 
 def format_report(result: EvalResult, improved: bool) -> str:
@@ -67,6 +74,7 @@ def format_report(result: EvalResult, improved: bool) -> str:
         f"Candidate worktree:     {result.candidate_worktree}",
         f"All builds succeeded:   {result.all_succeeded}",
         f"Wall time delta (sum):  {result.total_wall_time_delta:+.2f}s",
+        f"Baseline unfold count:  {result.total_unfold_count_baseline}",
         f"Unfold count delta:     {result.total_unfold_count_delta:+d}",
         f"Proof LOC delta:        {total_loc_delta:+d}",
         "",
@@ -91,8 +99,8 @@ def format_report(result: EvalResult, improved: bool) -> str:
         lines.append("VERDICT: REJECTED")
         if not result.all_succeeded:
             lines.append("  Reason: one or more builds failed")
-        elif result.total_unfold_count_delta >= 0:
-            lines.append("  Reason: no reduction in unfold count")
+        else:
+            lines.append("  Reason: no unfold reduction and no baseline unfold calls")
 
     return "\n".join(lines)
 

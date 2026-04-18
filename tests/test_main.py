@@ -89,14 +89,29 @@ def test_improvement_when_unfolds_reduced():
     assert is_improvement(result) is True
 
 
-def test_no_improvement_when_no_unfold_reduction():
-    result = _eval_result([_comparison(base_unfold=3, cand_unfold=3)])
+def test_no_improvement_when_zero_baseline_and_no_delta():
+    # baseline=0 unfolds and delta=0 → no signal → rejected
+    result = _eval_result([_comparison(base_unfold=0, cand_unfold=0)])
     assert is_improvement(result) is False
 
 
-def test_no_improvement_when_unfold_increases():
-    result = _eval_result([_comparison(base_unfold=3, cand_unfold=5)])
+def test_no_improvement_when_zero_baseline_unfold_increases():
+    # baseline=0, candidate added unfolds — also no improvement
+    result = _eval_result([_comparison(base_unfold=0, cand_unfold=5)])
     assert is_improvement(result) is False
+
+
+def test_improvement_when_baseline_has_unfolds_even_without_delta():
+    # baseline=16 unfolds, candidate unchanged → abbrev makes them no-ops → ACCEPTED
+    result = _eval_result([_comparison(base_unfold=16, cand_unfold=16)])
+    assert is_improvement(result) is True
+
+
+def test_improvement_nat_dist_scenario():
+    # Nat.dist scenario: 16 baseline unfolds, delta=0 (no source changes to downstream)
+    comparisons = [_comparison("Mathlib.Data.Nat.Dist", base_unfold=16, cand_unfold=16)]
+    result = _eval_result(comparisons, def_name="dist")
+    assert is_improvement(result) is True
 
 
 def test_no_improvement_when_build_fails():
@@ -152,10 +167,16 @@ def test_format_report_rejected_build_fail():
 
 
 def test_format_report_rejected_no_unfold_reduction():
-    result = _eval_result([_comparison(base_unfold=3, cand_unfold=3)])
+    result = _eval_result([_comparison(base_unfold=0, cand_unfold=0)])
     report = format_report(result, improved=False)
     assert "REJECTED" in report
     assert "unfold" in report.lower()
+
+
+def test_format_report_includes_baseline_unfold_count():
+    result = _eval_result([_comparison(base_unfold=16, cand_unfold=16)])
+    report = format_report(result, improved=True)
+    assert "Baseline unfold count:  16" in report
 
 
 # ---------------------------------------------------------------------------
@@ -231,7 +252,8 @@ def test_run_pipeline_reject(mock_eval, mock_add, mock_remove, tmp_path):
     lean_file = tmp_path / "Foo.lean"
     lean_file.write_text("def foo := 1\n")
     mock_add.side_effect = _make_worktree_side_effect("Foo.lean")
-    mock_eval.return_value = _eval_result([_comparison(base_unfold=3, cand_unfold=3)])
+    # zero baseline unfolds and no delta → rejected
+    mock_eval.return_value = _eval_result([_comparison(base_unfold=0, cand_unfold=0)])
     rc = run_pipeline(
         mathlib=tmp_path,
         target_file="Foo.lean",
