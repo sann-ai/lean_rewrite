@@ -41,6 +41,8 @@ Read the following, in this order:
 2. `TASKS.md` — find tasks with `status: open`
 3. The last ~80 lines of `NOTEBOOK.md` — see what recent agents did, avoid duplicating
 
+When choosing a task, **respect its dependencies**. Each task has a `依存:` (dependencies) field listing other task IDs. Skip any task whose dependencies are not all `status: done`. For example, if `T005` has `依存: T003` and T003 is still `open` or `claimed`, do not claim T005 — pick a different task.
+
 ### 3. Claim a task (mandatory before any work)
 
 You must claim your task **atomically via git** before doing any real work. Do not start working until the claim has been successfully pushed.
@@ -111,7 +113,7 @@ End the session under any of the following:
   - Completion: `done: <task-id>`
 - **One task per session.** Never hold multiple tasks at once.
 - When in doubt, do not change anything — leave a note in `NOTEBOOK.md` and stop.
-- All timestamps in UTC ISO 8601 (e.g. `2026-04-18T14:30:00Z`).
+- All timestamps must be **actual UTC**, not your local timezone with a `Z` suffix. Run `date -u +%Y-%m-%dT%H:%M:%SZ` in a shell to get a correct value (e.g. `2026-04-18T14:30:00Z`). Do not compute UTC from local time mentally — the offset is easy to get wrong.
 - Use your agent ID consistently throughout the session, in both commit messages and the `claimed_by` field.
 
 ## Per-file modification policy
