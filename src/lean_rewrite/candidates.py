@@ -156,7 +156,8 @@ def remove_redundant_unfolds(source: str, def_name: str) -> str:
     - ``unfold <def_name>; rest`` lines have the prefix removed; ``rest`` is kept.
     - Lines for other definition names are not touched.
     """
-    name_pat = re.escape(def_name)
+    # Match both unqualified (``unfold dist``) and qualified (``unfold Nat.dist``)
+    name_pat = rf"(?:\w+\.)*{re.escape(def_name)}"
     unfold_re = re.compile(rf'(\s*)unfold\s+{name_pat}(?:\s*;\s*(.*))?')
 
     lines = source.splitlines(keepends=True)

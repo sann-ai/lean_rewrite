@@ -330,3 +330,42 @@
 - Reading: Tier 2 is the nearest unmet tier. T010 found that `data/refactor_commits.jsonl` is predominantly pre-module-system (pre-Dec-2024) and incompatible with the current toolchain (`v4.30.0-rc2`). Only 1 genuine def→abbrev entry exists in the dataset. Tier 1 criterion 3 is satisfied by the clear REJECTED verdict in experiments/001/run1, but no run with ACCEPTED + candidate.patch exists yet; T008/T009 fixes make this achievable now.
 - New tasks: T012..T014
 - Rationale: T012 generates a post-module-system compatible def→abbrev dataset, directly enabling Tier 2 validation. T013 wires the profiler auto-injection that T011 left as a follow-up, giving stable elaboration-time data needed for Tier 4. T014 runs the E2E pipeline with --remove-unfolds on Nat.dist — the first concrete demonstration that the pipeline produces ACCEPTED + candidate.patch, closing the remaining gap in Tier 1.
+
+## 2026-04-18T19:52:58Z — T014 — tGhiJP
+
+- Did:
+  - Discovered a bug: `_count_unfolds(source, "dist")` returned 0 for `Dist.lean` because the pattern `\bunfold\s+dist\b` doesn't match `unfold Nat.dist` (the fully qualified tactic form used in mathlib). Similarly `remove_redundant_unfolds(source, "dist")` failed to match `unfold Nat.dist` lines.
+  - Fixed `_count_unfolds` in `src/lean_rewrite/evaluator.py`: pattern updated to `\bunfold\s+(?:\w+\.)*{def_name}\b`. Now matches both `unfold dist` and `unfold Nat.dist` when `def_name="dist"`. `\b` still prevents partial-name matches (`Nat.distance`, `Nat.dist_comm`).
+  - Fixed `remove_redundant_unfolds` in `src/lean_rewrite/candidates.py`: `name_pat` updated to `(?:\w+\.)*{re.escape(def_name)}`. Standalone `unfold Nat.dist; lia` lines are now correctly reduced to `lia`. Existing tests (which used `def_name="Nat.dist"`) still pass.
+  - Added 4 new tests: 2 in `tests/test_evaluator.py` (qualified prefix counting, no-partial-match), 2 in `tests/test_candidates.py` (unqualified def_name removes qualified unfold usage, no partial-match). All 108 tests pass.
+  - Ran E2E pipeline:
+    ```
+    PYTHONPATH=src python3 -m lean_rewrite.main \
+      --mathlib /Users/san/mathlib4 \
+      --file Mathlib/Data/Nat/Dist.lean \
+      --def-name dist \
+      --downstream Mathlib.Data.Nat.Dist \
+      --timeout 900 \
+      --output-dir experiments/001/run2 \
+      --remove-unfolds
+    ```
+  - Result: `All builds succeeded: True`, `Baseline unfold count: 16`, `Unfold count delta: -5`, `VERDICT: IMPROVED — patch accepted`.
+  - `experiments/001/run2/report.txt` and `experiments/001/run2/candidate.patch` created.
+  - The 5 removed unfolds were standalone `unfold Nat.dist; lia` lines (in multi-line `by` blocks); 11 inline `by unfold Nat.dist; lia` theorem definitions were untouched (fullmatch fails for those). The candidate build still succeeded, confirming `lia` can close those goals with `abbrev dist` (definitionally transparent) even with the remaining inline unfold calls.
+- Learned:
+  - The pipeline's `def_name` must be the unqualified name (for `def_to_abbrev` to find `def dist`), but Lean source uses fully qualified tactic names (`unfold Nat.dist`). The `(?:\w+\.)*` prefix in the regex bridges this gap without requiring callers to pass qualified names.
+  - `remove_redundant_unfolds` with fullmatch only removes standalone `unfold X; rest` lines. Inline proofs like `theorem ... := by unfold Nat.dist; lia` are not touched. This is correct: those lines need more contextual analysis (the unfold is fused with the theorem declaration).
+  - The unfold delta of -5 (not -16) is meaningful: 5 proofs are genuinely simplified, 11 inline ones remain. A future task could handle the inline form with a more permissive substitution.
+- Files touched:
+  - `src/lean_rewrite/evaluator.py` (updated `_count_unfolds`)
+  - `src/lean_rewrite/candidates.py` (updated `remove_redundant_unfolds`)
+  - `tests/test_evaluator.py` (2 new tests)
+  - `tests/test_candidates.py` (2 new tests)
+  - `experiments/001/run2/report.txt` (new)
+  - `experiments/001/run2/candidate.patch` (new)
+  - `TASKS.md` (T014 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 1 is now fully satisfied: E2E pipeline ran, both builds succeeded, ACCEPTED with candidate.patch.
+  - T012 (post-module-system dataset) remains open — needed for Tier 2 validation.
+  - Future: handle inline `by unfold X; tac` forms (not just standalone lines) in `remove_redundant_unfolds`.

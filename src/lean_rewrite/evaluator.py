@@ -142,10 +142,14 @@ def _inject_profiler_option(worktree: Path, module: str) -> None:
 
 
 def _count_unfolds(source: str, def_name: str) -> int:
-    """Count `unfold <def_name>` tactic occurrences in Lean source text."""
+    """Count `unfold <def_name>` tactic occurrences in Lean source text.
+
+    Matches both unqualified (``unfold dist``) and namespace-qualified
+    (``unfold Nat.dist``) forms when ``def_name`` is the unqualified name.
+    """
     if not def_name:
         return 0
-    pattern = rf"\bunfold\s+{re.escape(def_name)}\b"
+    pattern = rf"\bunfold\s+(?:\w+\.)*{re.escape(def_name)}\b"
     return len(re.findall(pattern, source))
 
 

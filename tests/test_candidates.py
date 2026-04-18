@@ -246,3 +246,18 @@ def test_nat_dist_example_removes_all_unfolds() -> None:
     out = remove_redundant_unfolds(src, "Nat.dist")
     assert "unfold Nat.dist" not in out
     assert "trivial" in out
+
+
+def test_remove_unfold_unqualified_def_name_matches_qualified_usage() -> None:
+    # Pipeline passes unqualified name ("dist") but source uses "unfold Nat.dist"
+    src = "theorem foo : True := by\n  unfold Nat.dist; lia\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert "unfold Nat.dist" not in out
+    assert "lia" in out
+
+
+def test_remove_unfold_unqualified_does_not_partial_match() -> None:
+    # "dist" should not remove "unfold Nat.distance"
+    src = "  unfold Nat.distance\n"
+    out = remove_redundant_unfolds(src, "dist")
+    assert out == src

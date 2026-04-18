@@ -1,0 +1,11 @@
+--- a/Mathlib/Data/Nat/Dist.lean
++++ b/Mathlib/Data/Nat/Dist.lean
+@@ -20,7 +20,7 @@
+ namespace Nat
+ 
+ /-- Distance (absolute value of difference) between natural numbers. -/
+-def dist (n m : ℕ) :=
++abbrev dist (n m : ℕ) :=
+   n - m + (m - n)
+ 
+ theorem dist_comm (n m : ℕ) : dist n m = dist m n := by simp [dist, add_comm]

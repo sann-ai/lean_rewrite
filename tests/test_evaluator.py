@@ -69,6 +69,16 @@ def test_count_unfolds_with_trailing_args() -> None:
     assert _count_unfolds(src, "Bar") == 0  # \bBar\b not following `unfold`
 
 
+def test_count_unfolds_qualified_prefix() -> None:
+    src = "unfold Nat.dist\nunfold Nat.dist; lia\n"
+    assert _count_unfolds(src, "dist") == 2
+
+
+def test_count_unfolds_qualified_no_partial_match() -> None:
+    src = "unfold Nat.distance\nunfold Nat.dist_comm\n"
+    assert _count_unfolds(src, "dist") == 0
+
+
 def test_proof_loc_basic() -> None:
     src = "def foo := 1\n\n-- comment\n  \n"
     assert _proof_loc(src) == 2
