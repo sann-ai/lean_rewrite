@@ -352,9 +352,10 @@
 
 ## T023 — Tier 3 変換: `@[simp]` 自動付与トランスフォーマ
 
-- status: claimed
+- status: done
 - claimed_by: GdC8jE
 - claimed_at: 2026-04-18T22:59:34Z
+- done_at: 2026-04-18T23:04:16Z
 - 依存: T004, T009
 - 内容:
   設計原理に沿った第 2 の変換族として `@[simp]` 自動付与を実装する。対象 `def` に `@[simp]` 属性を付けることで、下流が `simp only [def_name_eq]` / `unfold def_name; simp` の形で実装細部に依存していた箇所を `simp` 単独で閉じられるようにする。

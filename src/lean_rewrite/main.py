@@ -20,7 +20,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, has_termination_by, remove_redundant_unfolds
+from lean_rewrite.candidates import DefNotFoundError, add_simp_attr, def_to_abbrev, has_termination_by, remove_redundant_unfolds
 from lean_rewrite.evaluator import EvalResult, evaluate
 
 
@@ -137,6 +137,7 @@ def run_pipeline(
     output_dir: Path | None = None,
     remove_unfolds: bool = False,
     inject_profiler: bool = False,
+    transform: str = "def-to-abbrev",
 ) -> int:
     """Run the full pipeline. Returns 0 on improvement, 1 on reject, 2 on error."""
     src_path = mathlib / target_file
@@ -146,7 +147,7 @@ def run_pipeline(
 
     original_source = src_path.read_text(encoding="utf-8")
 
-    if has_termination_by(original_source, def_name):
+    if transform == "def-to-abbrev" and has_termination_by(original_source, def_name):
         report = (
             f"Definition:             {def_name}\n"
             f"VERDICT: SKIPPED_TERMINATION_BY\n"
@@ -159,7 +160,10 @@ def run_pipeline(
         return 1
 
     try:
-        candidate_source = def_to_abbrev(original_source, def_name)
+        if transform == "simp-attr":
+            candidate_source = add_simp_attr(original_source, def_name)
+        else:
+            candidate_source = def_to_abbrev(original_source, def_name)
     except DefNotFoundError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
@@ -249,6 +253,10 @@ def main() -> None:
         "--inject-profiler", action="store_true", default=False,
         help="Prepend `set_option profiler true` to module files before building"
     )
+    parser.add_argument(
+        "--transform", choices=["def-to-abbrev", "simp-attr"], default="def-to-abbrev",
+        help="Transformation to apply (default: def-to-abbrev)"
+    )
 
     args = parser.parse_args()
     sys.exit(
@@ -262,6 +270,7 @@ def main() -> None:
             output_dir=args.output_dir,
             remove_unfolds=args.remove_unfolds,
             inject_profiler=args.inject_profiler,
+            transform=args.transform,
         )
     )
 

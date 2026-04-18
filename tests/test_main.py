@@ -485,3 +485,80 @@ def test_run_pipeline_no_skip_without_termination_by(mock_eval, mock_add, mock_r
         downstream=["Foo"],
     )
     mock_eval.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# simp-attr transform tests
+# ---------------------------------------------------------------------------
+
+@patch("lean_rewrite.main._git_worktree_remove")
+@patch("lean_rewrite.main._git_worktree_add")
+@patch("lean_rewrite.main.evaluate")
+@patch("lean_rewrite.main.add_simp_attr", return_value="@[simp]\ndef foo := 1\n")
+def test_run_pipeline_simp_attr_applies_add_simp_attr(mock_simp, mock_eval, mock_add, mock_remove, tmp_path):
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text("def foo := 1\n")
+    mock_add.side_effect = _make_worktree_side_effect("Foo.lean")
+    mock_eval.return_value = _eval_result([_comparison(base_unfold=3, cand_unfold=0)])
+    rc = run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="foo",
+        downstream=["M"],
+        transform="simp-attr",
+    )
+    assert rc == 0
+    # add_simp_attr (not def_to_abbrev) was invoked for this def
+    mock_simp.assert_called_once_with("def foo := 1\n", "foo")
+
+
+def test_run_pipeline_simp_attr_does_not_skip_termination_by(tmp_path):
+    # simp-attr should NOT skip defs with termination_by (guard is def-to-abbrev only)
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text(
+        "def reverseRecOn (n : Nat) : Nat := n\n"
+        "termination_by n\n"
+    )
+    # No worktree created → will fail at _git_worktree_add, but that's fine;
+    # the key is it must NOT return 1 via the SKIPPED_TERMINATION_BY path.
+    # We mock to avoid actual git calls.
+    with patch("lean_rewrite.main._git_worktree_add"), \
+         patch("lean_rewrite.main._git_worktree_remove"), \
+         patch("lean_rewrite.main.evaluate") as mock_eval:
+        wt_path = tmp_path / "cand"
+        wt_path.mkdir()
+        (wt_path / "Foo.lean").write_text("")
+
+        def _side_add(mathlib, dest):
+            dest.mkdir(parents=True, exist_ok=True)
+            (dest / "Foo.lean").write_text("")
+
+        from lean_rewrite.main import _git_worktree_add
+        import lean_rewrite.main as lrm
+        lrm._git_worktree_add = _side_add
+        mock_eval.return_value = _eval_result([_comparison(base_unfold=0, cand_unfold=0)])
+
+        rc = run_pipeline(
+            mathlib=tmp_path,
+            target_file="Foo.lean",
+            def_name="reverseRecOn",
+            downstream=["M"],
+            transform="simp-attr",
+        )
+        # Should not short-circuit with SKIPPED_TERMINATION_BY (rc would be 1 from that path);
+        # evaluate was called, so short-circuit did not fire.
+        mock_eval.assert_called_once()
+
+
+def test_run_pipeline_simp_attr_noop_returns_1(tmp_path):
+    # If the def already has @[simp], add_simp_attr is a no-op → rc=1
+    lean_file = tmp_path / "Foo.lean"
+    lean_file.write_text("@[simp]\ndef foo := 1\n")
+    rc = run_pipeline(
+        mathlib=tmp_path,
+        target_file="Foo.lean",
+        def_name="foo",
+        downstream=["M"],
+        transform="simp-attr",
+    )
+    assert rc == 1

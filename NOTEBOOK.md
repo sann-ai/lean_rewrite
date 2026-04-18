@@ -667,3 +667,42 @@
 - Next steps:
   - T023 (add_simp_attr transformer) and T024 (find simp-eligible defs) are both unblocked.
   - The new `impl_dependency_count` metric is ready for use in Tier 3 E2E validation runs.
+
+## 2026-04-18T23:04:16Z — T023 — GdC8jE
+
+- Did:
+  - Added `add_simp_attr(source: str, def_name: str) -> str` to `src/lean_rewrite/candidates.py`.
+    Logic: (1) Uses `_find_def` to locate the declaration. (2) Checks the line immediately above
+    the header — if it starts with `@[` and already contains `simp`, returns source unchanged (no-op).
+    If it starts with `@[` without `simp`, appends `, simp` before the closing `]`.
+    (3) Otherwise inserts `@[simp]` on a new line at the same indentation as the declaration header.
+    Preserves modifiers (`noncomputable`, `protected`, etc.), doc comments, and existing attributes.
+    Raises `DefNotFoundError` if def not found.
+  - Updated `src/lean_rewrite/main.py`:
+    - Imported `add_simp_attr`.
+    - Added `transform: str = "def-to-abbrev"` parameter to `run_pipeline()`.
+    - The `has_termination_by` early-exit guard is now conditional on `transform == "def-to-abbrev"`.
+    - Branches to `add_simp_attr` when `transform == "simp-attr"`, else `def_to_abbrev`.
+    - Added `--transform {def-to-abbrev,simp-attr}` CLI argument (default: `def-to-abbrev`).
+  - Added 6 tests in `tests/test_candidates.py` for `add_simp_attr`:
+    basic insertion, append to existing `@[...]`, no-op when `@[simp]` present,
+    `noncomputable` coexistence, doc comment preservation, `DefNotFoundError` on missing def.
+  - Added 3 tests in `tests/test_main.py` for `simp-attr` mode:
+    verifies `add_simp_attr` is called, verifies `termination_by` guard skipped, verifies no-op → rc=1.
+  - All 181 tests pass (up from 172).
+- Learned:
+  - Using `wraps=` on a mock doesn't make `.return_value` hold the real function's result;
+    for verifying which transform was called, patching with an explicit `return_value` is cleaner.
+  - The `has_termination_by` guard must be conditional on `transform` mode — `@[simp]` is safe
+    to add to recursive defs (no elaboration incompatibility with `termination_by`).
+- Files touched:
+  - `src/lean_rewrite/candidates.py` (new `add_simp_attr`)
+  - `src/lean_rewrite/main.py` (import, `transform` param, `--transform` CLI arg)
+  - `tests/test_candidates.py` (import update, 6 new tests)
+  - `tests/test_main.py` (3 new tests)
+  - `TASKS.md` (T023 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T024 (find simp-eligible defs in mathlib4) is unblocked — supply concrete targets for Tier 3 E2E.
+  - Tier 3 E2E run: take a candidate from T024 output, run pipeline with `--transform simp-attr
+    --remove-unfolds`, confirm impl_dependency_delta < 0.

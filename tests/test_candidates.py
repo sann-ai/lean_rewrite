@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from lean_rewrite.candidates import DefNotFoundError, def_to_abbrev, has_termination_by, remove_redundant_unfolds
+from lean_rewrite.candidates import DefNotFoundError, add_simp_attr, def_to_abbrev, has_termination_by, remove_redundant_unfolds
 
 
 def test_basic_def_to_abbrev() -> None:
@@ -412,3 +412,43 @@ def test_has_termination_by_real_reverse_rec_on_pattern() -> None:
     )
     assert has_termination_by(src, "reverseRecOn") is True
     assert has_termination_by(src, "nextDef") is False
+
+
+# ---------------------------------------------------------------------------
+# add_simp_attr tests
+# ---------------------------------------------------------------------------
+
+def test_add_simp_attr_basic_insertion() -> None:
+    src = "def foo (x : Nat) : Nat := x + 1\n"
+    out = add_simp_attr(src, "foo")
+    assert out == "@[simp]\ndef foo (x : Nat) : Nat := x + 1\n"
+
+
+def test_add_simp_attr_appends_to_existing_attr() -> None:
+    src = "@[reducible]\ndef foo (x : Nat) : Nat := x\n"
+    out = add_simp_attr(src, "foo")
+    assert out == "@[reducible, simp]\ndef foo (x : Nat) : Nat := x\n"
+
+
+def test_add_simp_attr_noop_when_already_simp() -> None:
+    src = "@[simp]\ndef foo (x : Nat) : Nat := x\n"
+    out = add_simp_attr(src, "foo")
+    assert out == src
+
+
+def test_add_simp_attr_noncomputable_coexists() -> None:
+    src = "noncomputable def foo : Nat := Classical.choice ⟨0⟩\n"
+    out = add_simp_attr(src, "foo")
+    assert out == "@[simp]\nnoncomputable def foo : Nat := Classical.choice ⟨0⟩\n"
+
+
+def test_add_simp_attr_preserves_doc_comment() -> None:
+    src = "/-- Returns x. -/\ndef foo (x : Nat) := x\n"
+    out = add_simp_attr(src, "foo")
+    assert out == "/-- Returns x. -/\n@[simp]\ndef foo (x : Nat) := x\n"
+
+
+def test_add_simp_attr_not_found_raises() -> None:
+    src = "def foo := 1\n"
+    with pytest.raises(DefNotFoundError):
+        add_simp_attr(src, "missing")

@@ -229,6 +229,42 @@ def has_termination_by(source: str, def_name: str) -> bool:
     return False
 
 
+def add_simp_attr(source: str, def_name: str) -> str:
+    """Add ``@[simp]`` attribute to ``def <def_name>``.
+
+    - Appends ``simp`` to an existing ``@[...]`` attribute block on the line
+      immediately above the declaration header; otherwise inserts a new
+      ``@[simp]`` line at the same indentation.
+    - No-op if ``@[simp]`` is already present.
+
+    Raises :class:`DefNotFoundError` if no top-level ``def <def_name>`` is found.
+    """
+    match = _find_def(source, def_name)
+
+    prefix = source[: match.header_start]
+    stripped_prefix = prefix.rstrip("\n")
+    last_nl = stripped_prefix.rfind("\n")
+    last_line = stripped_prefix[last_nl + 1 :].strip()
+
+    if last_line.startswith("@["):
+        if re.search(r"\bsimp\b", last_line):
+            return source  # @[simp] already present — no-op
+        attr_line_start = last_nl + 1
+        attr_line_end = source.find("\n", attr_line_start)
+        if attr_line_end == -1:
+            attr_line_end = len(source)
+        attr_line_content = source[attr_line_start:attr_line_end]
+        close_bracket = attr_line_content.rfind("]")
+        if close_bracket != -1:
+            insert_pos = attr_line_start + close_bracket
+            return source[:insert_pos] + ", simp" + source[insert_pos:]
+
+    # No suitable attribute block: insert @[simp] before the header line.
+    line_start = source.rfind("\n", 0, match.header_start) + 1
+    indent = source[line_start : match.header_start]
+    return source[:line_start] + f"{indent}@[simp]\n" + source[line_start:]
+
+
 def _has_reducible_attr_directly_above(prefix: str) -> bool:
     """Return True if the last non-blank line of ``prefix`` is a ``@[reducible]``.
 
