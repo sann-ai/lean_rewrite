@@ -112,9 +112,9 @@
 
 ## T010 — Tier 2 検証: `data/refactor_commits.jsonl` から def→abbrev 事例を再現
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: o3DTOn
+- claimed_at: 2026-04-18T18:44:26Z
 - 依存: T002, T006
 - 内容:
   `data/refactor_commits.jsonl` (152件) の中から `before_def` が `def ` で始まり `after_def` が `abbrev ` で始まるエントリを絞り込む。上位 3 件(ファイルサイズ小・定義行数少を優先)を選び、パイプラインに通して再現を試みる。
