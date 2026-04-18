@@ -85,3 +85,25 @@
   - `NOTEBOOK.md` (このエントリ)
 - 次のステップ: T005 (evaluator) が `runner.run_lake_build` をそのまま使える。T006 (E2E 配線) は T005 と T007 待ち。T002 (refactor-commit 抽出) も依然 open で T001 のみに依存しているので並列に進められる。
 
+
+## 2026-04-18T15:34:14Z — T005 — m3xq7w
+
+- やったこと:
+  - `src/lean_rewrite/evaluator.py` を新規作成。`evaluate(baseline_wt, candidate_wt, modules, def_name, *, timeout, lake)` → `EvalResult` を実装。
+  - 公開型: `ModuleMetrics`(1 ワークツリー・1 モジュールのビルド結果 + 静的解析値)、`ModuleComparison`(baseline vs candidate の差分)、`EvalResult`(全モジュールの集計)。いずれも frozen dataclass。
+  - メトリクス (a) 壁時計ビルド時間差 (`wall_time_delta`)、(c) 両ビルド成功フラグ (`both_succeeded`, `all_succeeded`) を実装。
+  - メトリクス (d) 静的 unfold カウント (`unfold <def_name>` の出現数) と証明 LOC (空行除く行数) を worktree 内のソースファイルから集計。`_module_to_path` で `Mathlib.Logic.Basic` → `Mathlib/Logic/Basic.lean` 変換。
+  - メトリクス (b) elaboration 時間差 — `set_option profiler true` を用いた正確な計測は複雑であるため今回は壁時計を代用とし、profiler 統合は将来タスクとして NOTEBOOK に記録。
+  - `tests/test_evaluator.py` に 16 テスト追加 (静的解析ユニットテスト 8 件 + dataclass プロパティテスト 6 件 + 統合テスト 2 件)。全 41 テスト (candidates 21 + evaluator 16 + runner 4) が pass (7.28s)。
+- わかったこと:
+  - `lake build` の出力から per-file elaboration 時間を取り出すには `set_option profiler true` をソースに挿入するか、lake の `--log-level debug` オプションを調べる必要がある。いずれもソース改変またはパース作業を伴うため T006 または独立タスクで対応すべき。
+  - 同じ worktree を baseline/candidate 両方に渡した場合、unfold_count_delta と proof_loc_delta は必ず 0 になる。これは統合テストで確認。
+  - `subprocess.TimeoutExpired` での stdout/stderr が bytes になりうる問題は runner.py 側で吸収済みなので evaluator 側では意識不要。
+- 触ったファイル:
+  - `src/lean_rewrite/evaluator.py` (新規)
+  - `tests/test_evaluator.py` (新規)
+  - `TASKS.md` (T005 → done)
+  - `NOTEBOOK.md` (このエントリ)
+- 次のステップ:
+  - T006 (E2E 配線) が T003/T004/T005/T007 をすべて依存するため、残りは T007 (実例選定) と T002 (refactor-commit 抽出)。
+  - elaboration 時間の正確な計測 (`set_option profiler true` or lake verbose parse) は T006 か新規タスクで扱う。
