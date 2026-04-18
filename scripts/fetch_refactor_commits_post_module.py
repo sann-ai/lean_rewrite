@@ -5,7 +5,7 @@ that change exactly one def/abbrev block in a single .lean file,
 filtering to def↔abbrev changes only.
 
 Usage:
-    python3 scripts/fetch_refactor_commits_post_module.py [--mathlib PATH] [--after-sha SHA] [--output PATH]
+    python3 scripts/fetch_refactor_commits_post_module.py [--mathlib PATH] [--after-sha SHA] [--output PATH] [--extra-prefixes feat,fix,style]
 
 Output: data/refactor_commits_post_module.jsonl
 Fields: sha, message, file, def_name, before_def, after_def
@@ -34,28 +34,28 @@ DEFAULT_OUTPUT = Path(__file__).parent.parent / "data" / "refactor_commits_post_
 MODULE_SYSTEM_SHA = "6a54a80825"
 
 
-def get_candidate_shas_after(mathlib: Path, after_sha: str) -> list[tuple[str, str]]:
+DEFAULT_EXTRA_PREFIXES = ("feat", "fix", "style")
+
+
+def get_candidate_shas_after(
+    mathlib: Path, after_sha: str, extra_prefixes: tuple[str, ...] = ()
+) -> list[tuple[str, str]]:
     """Return (sha, subject) pairs for commits after after_sha that are likely def↔abbrev changes.
 
-    Criteria: subject starts with refactor/perf/chore OR contains the word 'abbrev'.
-    This is broader than the original script because post-module-system def→abbrev
-    changes in mathlib typically use 'chore' prefix, not 'refactor'/'perf'.
+    Base criteria: subject starts with refactor/perf/chore OR contains the word 'abbrev'.
+    Extra prefixes (e.g. feat, fix, style) can be added via extra_prefixes.
     """
     log = _git(
         "log", f"{after_sha}..HEAD", "--format=%H\t%s", "--no-merges", cwd=mathlib
     )
+    all_prefixes = ("refactor", "perf", "chore") + tuple(extra_prefixes)
     result = []
     for line in log.splitlines():
         if not line.strip():
             continue
         sha, _, subject = line.partition("\t")
         subj = subject.strip().lower()
-        if (
-            subj.startswith("refactor")
-            or subj.startswith("perf")
-            or subj.startswith("chore")
-            or "abbrev" in subj
-        ):
+        if any(subj.startswith(p) for p in all_prefixes) or "abbrev" in subj:
             result.append((sha, subject.strip()))
     return result
 
@@ -115,6 +115,20 @@ def process_commit(sha: str, message: str, mathlib: Path) -> dict | None:
     }
 
 
+def load_existing_records(output: Path) -> dict[str, dict]:
+    """Load existing jsonl records keyed by sha."""
+    if not output.exists():
+        return {}
+    records = {}
+    with open(output, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rec = json.loads(line)
+                records[rec["sha"]] = rec
+    return records
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mathlib", type=Path, default=DEFAULT_MATHLIB)
@@ -124,6 +138,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Only scan commits after this SHA (exclusive)",
     )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--extra-prefixes",
+        default=",".join(DEFAULT_EXTRA_PREFIXES),
+        help="Comma-separated additional commit subject prefixes to scan (default: feat,fix,style)",
+    )
     args = parser.parse_args(argv)
 
     if not args.mathlib.is_dir():
@@ -132,32 +151,52 @@ def main(argv: list[str] | None = None) -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
 
+    extra_prefixes = tuple(p.strip() for p in args.extra_prefixes.split(",") if p.strip())
+
+    # Load existing records for deduplication
+    existing = load_existing_records(args.output)
     print(
-        f"Scanning refactor/perf commits after {args.after_sha} in {args.mathlib} …",
+        f"Loaded {len(existing)} existing records from {args.output}",
         file=sys.stderr,
     )
-    candidates = get_candidate_shas_after(args.mathlib, args.after_sha)
-    print(f"Found {len(candidates)} refactor/perf commits to check.", file=sys.stderr)
 
-    records: list[dict] = []
+    print(
+        f"Scanning extra-prefix commits ({', '.join(extra_prefixes)}) after {args.after_sha} in {args.mathlib} …",
+        file=sys.stderr,
+    )
+    # Only fetch candidates matching the extra prefixes (base prefixes already covered)
+    candidates = get_candidate_shas_after(args.mathlib, args.after_sha, extra_prefixes=extra_prefixes)
+    # Remove SHAs already in the base set (matched by base prefixes) — filter to only new candidates
+    # Actually, get_candidate_shas_after includes base prefixes too; that's fine since we deduplicate by sha.
+    print(f"Found {len(candidates)} candidate commits to check.", file=sys.stderr)
+
+    new_records: list[dict] = []
     for i, (sha, message) in enumerate(candidates):
+        if sha in existing:
+            continue
         record = process_commit(sha, message, args.mathlib)
         if record:
-            records.append(record)
-            print(f"  [{len(records):3d}] {sha[:8]}  {message[:60]}", file=sys.stderr)
-        if (i + 1) % 50 == 0:
+            new_records.append(record)
+            print(f"  [{len(new_records):3d}] {sha[:8]}  {message[:60]}", file=sys.stderr)
+        if (i + 1) % 100 == 0:
             print(
-                f"  … {i+1}/{len(candidates)} scanned, {len(records)} found so far",
+                f"  … {i+1}/{len(candidates)} scanned, {len(new_records)} new found so far",
                 file=sys.stderr,
             )
 
+    # Merge: existing + new, preserve order (existing first)
+    all_records = list(existing.values()) + new_records
     with open(args.output, "w", encoding="utf-8") as f:
-        for rec in records:
+        for rec in all_records:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-    print(f"\nWrote {len(records)} records to {args.output}", file=sys.stderr)
-    if len(records) == 0:
-        print("WARNING: 0 records found — dataset may need a wider search scope.", file=sys.stderr)
+    print(
+        f"\nScanned {len(candidates)} commits; found {len(new_records)} new records "
+        f"(total: {len(all_records)}) → {args.output}",
+        file=sys.stderr,
+    )
+    if len(all_records) == 0:
+        print("WARNING: 0 records total — dataset may need a wider search scope.", file=sys.stderr)
         return 1
     return 0
 

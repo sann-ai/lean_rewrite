@@ -465,3 +465,29 @@
   - T017 (dataset expansion via feat/fix/style prefixes) remains open — more cases needed for Tier 2.
   - Tier 3: add a metric that catches the SkewPolynomial case (typeclass synthesis improvement).
   - Safety heuristic: skip abbrev conversion for defs with `termination_by`.
+
+## 2026-04-18T21:01:26Z — T017 — LF3HCV
+
+- Did:
+  - Extended `scripts/fetch_refactor_commits_post_module.py` with `--extra-prefixes` option (default: `feat,fix,style`) and `load_existing_records()` for deduplication.
+  - `get_candidate_shas_after` now accepts `extra_prefixes: tuple[str, ...]` parameter; base prefixes `refactor/perf/chore` are always included.
+  - Ran the script against `/Users/san/mathlib4` with `--extra-prefixes feat,fix,style`: scanned 4810 candidate commits (refactor/perf/chore/feat/fix/style + "abbrev" keyword), found 2 new records beyond the existing 4:
+    - `f3acad5a` — `@[inline] def runThe → abbrev runThe` (`Mathlib/Control/Monad/Writer.lean`), from a `feat:` commit adding rfl lemmas for WriterT.run
+    - `a04c5481` — `def freeGroupEmptyEquivUnit → abbrev freeGroupEmptyEquivUnit` (`Mathlib/GroupTheory/FreeGroup/Basic.lean`), from a deprecation-related `feat:` commit
+  - `data/refactor_commits_post_module.jsonl` updated from 4 → 6 records (deduplication confirmed: existing SHAs skipped).
+  - Added 5 new unit tests to `tests/test_fetch_refactor_post_module.py` covering `extra_prefixes` and `load_existing_records`; all 140 tests pass.
+- Learned:
+  - `feat`/`fix`/`style` prefixes yield only 2 additional def↔abbrev records across 4810 commits — these changes are very sparse even in the broader prefix set. The post-module dataset is now 6 records total.
+  - `style` commits contributed 0 new records. `fix` commits contributed 0 new records. Both new finds came from `feat:` commits.
+  - `@[inline] def runThe` → `abbrev runThe`: removing `@[inline]` and switching to `abbrev` is a valid `def→abbrev` change (both have same unfolding behavior but `abbrev` is preferred style for transparent wrappers).
+  - `freeGroupEmptyEquivUnit` is a `def → abbrev` in a deprecation commit — the old name became an `abbrev` pointing to the new name. This is a valid Tier 2 validation case but structurally different from the typical "same def, different keyword" change.
+- Files touched:
+  - `scripts/fetch_refactor_commits_post_module.py` (added `--extra-prefixes`, `load_existing_records`, updated `get_candidate_shas_after` signature)
+  - `tests/test_fetch_refactor_post_module.py` (5 new tests, import of `load_existing_records`)
+  - `data/refactor_commits_post_module.jsonl` (4 → 6 records)
+  - `TASKS.md` (T017 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 2 validation now has 6 records (previously 4). T015 already ran validation on the original 4 — consider running validation on the 2 new entries (`f3acad5a`, `a04c5481`) to see if they yield ACCEPTED results.
+  - Tier 3 work: the SkewPolynomial case (T015) shows a metric gap — typeclass synthesis improvements from `abbrev` are invisible to the current `unfold`-count metric. Adding a typeclass/simp signal would improve coverage.
+  - `docs`/`ci`/`test` prefixes not yet scanned; if more data is needed, those are next candidates.

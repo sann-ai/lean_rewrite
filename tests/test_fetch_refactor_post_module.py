@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
+import json
+import tempfile
+
 from fetch_refactor_commits_post_module import (
     MODULE_SYSTEM_SHA,
     get_candidate_shas_after,
     is_def_to_abbrev_change,
     _get_def_keyword,
+    load_existing_records,
     process_commit,
 )
 
@@ -209,3 +213,66 @@ def test_process_commit_accepts_abbrev_change_with_other_block_changes():
         rec = process_commit("sha1", "chore: make foo an abbrev", Path("/mathlib"))
         assert rec is not None
         assert rec["def_name"] == "foo"
+
+
+# ── extra_prefixes ────────────────────────────────────────────────────────────
+
+
+def test_extra_prefixes_includes_feat_commits():
+    mock_output = (
+        "aabbcc1111111111111111111111111111111111\tfeat(Foo): add thing\n"
+        "bbccdd2222222222222222222222222222222222\tfix(Bar): bug\n"
+        "ccddee3333333333333333333333333333333333\tdocs: update readme\n"
+    )
+    with patch("fetch_refactor_commits_post_module._git", return_value=mock_output):
+        result = get_candidate_shas_after(
+            Path("/fake/mathlib"), "deadbeef", extra_prefixes=("feat", "fix")
+        )
+        shas = [r[0] for r in result]
+        assert "aabbcc1111111111111111111111111111111111" in shas
+        assert "bbccdd2222222222222222222222222222222222" in shas
+        assert "ccddee3333333333333333333333333333333333" not in shas
+
+
+def test_extra_prefixes_empty_does_not_add_feat():
+    mock_output = "aabbcc1111111111111111111111111111111111\tfeat(Foo): add thing\n"
+    with patch("fetch_refactor_commits_post_module._git", return_value=mock_output):
+        result = get_candidate_shas_after(
+            Path("/fake/mathlib"), "deadbeef", extra_prefixes=()
+        )
+        assert result == []
+
+
+# ── load_existing_records ─────────────────────────────────────────────────────
+
+
+def test_load_existing_records_from_jsonl():
+    records = [
+        {"sha": "aabbcc", "message": "chore: foo", "file": "Foo.lean", "def_name": "foo",
+         "before_def": "def foo := 0", "after_def": "abbrev foo := 0"},
+        {"sha": "bbccdd", "message": "chore: bar", "file": "Bar.lean", "def_name": "bar",
+         "before_def": "def bar := 1", "after_def": "abbrev bar := 1"},
+    ]
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+        for r in records:
+            f.write(json.dumps(r) + "\n")
+        path = Path(f.name)
+    result = load_existing_records(path)
+    assert set(result.keys()) == {"aabbcc", "bbccdd"}
+    assert result["aabbcc"]["def_name"] == "foo"
+
+
+def test_load_existing_records_nonexistent_file():
+    result = load_existing_records(Path("/no/such/file.jsonl"))
+    assert result == {}
+
+
+def test_load_existing_records_deduplicates_by_sha():
+    rec = {"sha": "aabbcc", "message": "m", "file": "F.lean", "def_name": "f",
+           "before_def": "def f := 0", "after_def": "abbrev f := 0"}
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+        f.write(json.dumps(rec) + "\n")
+        f.write(json.dumps(rec) + "\n")  # duplicate
+        path = Path(f.name)
+    result = load_existing_records(path)
+    assert len(result) == 1
