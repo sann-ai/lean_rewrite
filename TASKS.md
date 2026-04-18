@@ -46,9 +46,9 @@
 
 ## T005 — evaluator: 下流証明メトリクス差分
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: m3xq7w
+- claimed_at: 2026-04-18T15:31:41Z
 - 依存: T003
 - 内容: `src/lean_rewrite/evaluator.py` を実装。baseline と候補の2つの mathlib worktree、および下流モジュールのリストを受け取り、両方をビルドして以下を報告:
   - (a) 壁時計ビルド時間差
