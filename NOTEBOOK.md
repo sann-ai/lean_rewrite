@@ -738,3 +738,9 @@
   - Tier 3 E2E run: take `natDegree` or `succAbove` as target, run pipeline with
     `--transform simp-attr --remove-unfolds`, confirm `impl_dependency_delta < 0`.
   - Optionally extend `find_simp_eligible_defs.py` to cross-directory scanning to find more candidates.
+
+## 2026-04-18T23:31:41Z — planning — iHZU5b
+- Trigger: TASKS.md had zero eligible open tasks (T001–T024 all done).
+- Reading: Tier 3 is the nearest unmet tier. T022/T023/T024 added the impl_dependency_count metric, add_simp_attr transformer, and simp-eligible candidates — but no E2E run with simp-attr has been performed yet. Tier 4 is not yet started (no candidate with ≥5 downstream proofs identified).
+- New tasks: T025..T027
+- Rationale: T025 runs the Tier 3 E2E validation for natDegree with simp-attr + remove-unfolds, measuring impl_dependency_delta. T026 repeats with divMaxPow for a second data point, satisfying Tier 3's "at least 1 transform family with E2E validation + numeric evidence" requirement. T027 starts Tier 4 preparation by identifying defs with ≥5 downstream proofs, which will be needed for the "5件以上の下流証明" Tier 4 criterion. T025 and T027 are immediately claimable (all deps done); T026 depends on T025 for lessons learned.

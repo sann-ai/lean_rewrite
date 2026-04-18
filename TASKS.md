@@ -386,3 +386,84 @@
   2. 上位 10 件を `data/simp_eligible_defs.jsonl` に保存 (フィールド: `file`, `def_name`, `simp_lemma_count`, `downstream_unfold_count`, `is_noncomputable`)。
   3. `experiments/003_simp_pilot/README.md` に上位 3 件の詳細 (def 内容・関連 simp 補題・unfold 使用例) を記述。これは次の E2E 実行の入力になる。
   受け入れ基準: `data/simp_eligible_defs.jsonl` に 3 件以上のエントリが存在。`experiments/003_simp_pilot/README.md` に上位 3 件の具体的内容が記述されていること。
+
+## T025 — Tier 3 E2E: simp-attr で natDegree を検証し impl_dependency_delta を計測
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T022, T023, T024
+- 内容:
+  T023 の `add_simp_attr` 変換と T022 の `impl_dependency_count` メトリクスを使い、`Polynomial.natDegree` に対して Tier 3 E2E 検証を完成させる。
+  手順:
+  1. `data/simp_eligible_defs.jsonl` の `natDegree` エントリを確認: `"file": "Mathlib/Algebra/Polynomial/Degree/Defs.lean"`, `"def_name": "natDegree"`
+  2. 対応モジュール名: `Mathlib.Algebra.Polynomial.Degree.Defs`
+  3. 以下のコマンドを実行(SESSION ディレクトリ内で):
+     ```
+     PYTHONPATH=src python3 -m lean_rewrite.main \
+       --mathlib /Users/san/mathlib4 \
+       --file Mathlib/Algebra/Polynomial/Degree/Defs.lean \
+       --def-name natDegree \
+       --downstream Mathlib.Algebra.Polynomial.Degree.Defs \
+       --transform simp-attr \
+       --remove-unfolds \
+       --output-dir experiments/003_simp_pilot \
+       --timeout 600
+     ```
+  4. `experiments/003_simp_pilot/report.txt` の内容を確認し、以下を NOTEBOOK に記録:
+     - baseline build 成功/失敗
+     - candidate build 成功/失敗
+     - `Baseline impl dependency count:` の値
+     - `Impl dependency delta:` の値(負なら改善)
+     - `is_improvement` の判定
+  5. もし `--remove-unfolds` が同ファイル内の unfold 呼び出しに効かない場合(unfold count が変わらない場合)は:
+     - `src/lean_rewrite/evaluator.py` の `_collect_metrics` が downstream のどのファイルに remove-unfolds を適用するかを確認
+     - 必要であれば downstream に別のモジュールを追加する(例: natDegree を使う兄弟ファイル)
+     - 調整した手順とその理由を NOTEBOOK に記録する
+  受け入れ基準: `experiments/003_simp_pilot/report.txt` に `Baseline impl dependency count:` と `Impl dependency delta:` が含まれ、baseline build が成功し、NOTEBOOK にメトリクス値が記録されていること(delta が正でも「改善なし」として記録すれば OK)。
+
+## T026 — Tier 3 第2実例: Nat.divMaxPow に simp-attr E2E を適用して2件目の Tier 3 検証
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T025
+- 内容:
+  T025 の simp-attr E2E を別の候補(`Nat.divMaxPow`)に対して繰り返し、Tier 3 の「最低 1 変換族で E2E 検証」を複数実例で補強する。
+  手順:
+  1. `data/simp_eligible_defs.jsonl` の `divMaxPow` エントリを確認: `"file": "Mathlib/Data/Nat/MaxPowDiv.lean"`
+  2. 対応モジュール名: `Mathlib.Data.Nat.MaxPowDiv`
+  3. 以下のコマンドを実行:
+     ```
+     PYTHONPATH=src python3 -m lean_rewrite.main \
+       --mathlib /Users/san/mathlib4 \
+       --file Mathlib/Data/Nat/MaxPowDiv.lean \
+       --def-name divMaxPow \
+       --downstream Mathlib.Data.Nat.MaxPowDiv \
+       --transform simp-attr \
+       --remove-unfolds \
+       --output-dir experiments/003_simp_pilot/divMaxPow \
+       --timeout 600
+     ```
+  4. T025 で得た教訓(--remove-unfolds の挙動など)を適用して調整する。
+  5. 結果を `experiments/003_simp_pilot/divMaxPow/report.txt` に保存し、NOTEBOOK に記録。
+  受け入れ基準: `experiments/003_simp_pilot/divMaxPow/report.txt` に report が保存され、baseline build 成功、impl_dependency_delta が NOTEBOOK に記録されていること。
+
+## T027 — Tier 4 候補探索: 下流証明 ≥5 件を持つ def を mathlib4 から収集
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T001
+- 内容:
+  Tier 4 完成のために「5 件以上の下流証明を持つ定義」を見つけるスクリプトを書く。
+  手順:
+  1. `scripts/find_tier4_candidates.py` を新規作成。`/Users/san/mathlib4/Mathlib/` 以下を walk し、以下を両方満たす `def` を収集:
+     (a) def に `@[simp]` アトリビュートがない(simp-attr 変換の対象になれる)
+     (b) 同ファイル内で、この def 名を参照する `theorem` / `lemma` / `example` が **5 件以上** 存在する
+         (grep: `\b<def_name>\b` が def ブロック以外の theorem/lemma/example 内に出現する行数で判定)
+     (c) `is_noncomputable: false`(builld 検証が現実的)
+  2. 上位 10 件を `data/tier4_candidates.jsonl` に保存(フィールド: `file`, `def_name`, `downstream_theorem_count`, `is_noncomputable`)。
+  3. NOTEBOOK に上位 3 件のサマリを記録する。
+  注: 同ファイル内の参照数のみカウントする(cross-file は偽陽性が多いため)。スクリプトは既存の `find_simp_eligible_defs.py` を参考にしてよい。
+  受け入れ基準: `data/tier4_candidates.jsonl` に 3 件以上のエントリが存在し、各エントリの `downstream_theorem_count >= 5` であること。
