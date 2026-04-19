@@ -623,9 +623,10 @@
 
 ## T033 — Tier 4 完成: experiments/writeup.md を書く
 
-- status: claimed
+- status: done
 - claimed_by: uinIWU
 - claimed_at: 2026-04-19T01:59:53Z
+- done_at: 2026-04-19T02:05:00Z
 - 依存: T028, T030
 - 内容:
   Tier 4 の最終基準「Buzzard ら *Schemes in Lean* の少なくとも 1 対について『下流が実装詳細から interface 層に移った』という観点での比較を `experiments/writeup.md` に記す」を達成する。

@@ -979,3 +979,22 @@
 - Reading: Tier 2 is at cumulative 1/8 ACCEPTED (T021: 1, T029: 0); criterion requires ≥3. Tier 4 has numeric evidence (Nat.dist: 21 theorems, impl_dependency_delta=-32, VERDICT=IMPROVED) but `experiments/writeup.md` is missing, blocking the final human-review criterion.
 - New tasks: T031..T033
 - Rationale: T031 is a quick completion of T029's unfinished work (2 unvalidated entries). T032 addresses T029's key insight — "pure" def→abbrev commits lack unfold patterns, but *compound* commits (def→abbrev + unfold removal in same diff) necessarily have them, making ACCEPTED far more likely; this is the most promising path to Tier 2 ≥3. T033 closes Tier 4 by writing the qualitative writeup that the completion criterion explicitly requires; the underlying numeric evidence already exists in T028/T030 reports.
+
+## 2026-04-19T02:01:26Z — T033 — uinIWU
+
+- Did:
+  - Read `experiments/002_tier3_nat_dist_v2/report.txt` and `experiments/004_tier4/Nat_dist/report.txt` (both IMPROVED, Baseline impl dependency count=33, delta=-32, 21 downstream theorems).
+  - Read `/Users/san/mathlib4/Mathlib/Data/Nat/Dist.lean` to extract before-state definition and representative `unfold Nat.dist; lia` examples.
+  - Read `experiments/004_tier4/Nat_dist/candidate.patch` (single-line diff: `def dist` → `abbrev dist`).
+  - Wrote `experiments/writeup.md` (1082 words) with sections: Background, Example (Nat.dist), Metrics table, Buzzard Lens Analysis, Limitations, Next Steps.
+  - Verified: keywords `Baseline impl dependency count`, `VERDICT`, `Buzzard` all present; word count 1082 ≥ 300.
+- Learned:
+  - The analogy between `Nat.dist def→abbrev` and Buzzard 2nd→3rd scheme version is directionally apt but not identical: `abbrev` reduces opacity rather than introducing a new abstraction layer. Writeup acknowledges this clearly.
+  - Tier 4 numeric criteria are met (21 theorems, impl_dependency_delta=-32, builds succeed). Human reviewer still needed to confirm qualitative Buzzard-lens judgment.
+- Files touched:
+  - `experiments/writeup.md` (new, 1082 words)
+  - `TASKS.md` (T033 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T031 (validate MvPolynomial + smul' from pure_defabbrev_commits.jsonl) and T032 (compound commit strategy for Tier 2) are still open.
+  - Human should review `experiments/writeup.md` to make final Tier 4 call.
