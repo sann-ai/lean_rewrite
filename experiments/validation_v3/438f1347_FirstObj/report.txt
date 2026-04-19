@@ -1,0 +1,24 @@
+SHA:                  438f1347078fe16af77f6693057f49eaee5abe1f
+Commit:               refactor(CategoryTheory): one-field structure morphisms in the category of types
+File:                 Mathlib/CategoryTheory/Sites/EqualizerSheafCondition.lean
+remove_redundant_unfolds: none found
+
+Definition:             FirstObj
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-438f1347-uxvrgp8g/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-438f1347-uxvrgp8g/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 2
+Baseline impl dependency count: 1
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.CategoryTheory.Sites.EqualizerSheafCondition
+    Both succeeded: False
+    Baseline FAILED (rc=1)
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

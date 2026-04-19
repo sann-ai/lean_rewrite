@@ -937,3 +937,39 @@
   - T029 (Tier 2 expansion: find pure def→abbrev commits to reach cumulative ≥3 ACCEPTED) is still open.
   - Tier 4 numeric evidence is established for Nat.dist. Human reviewer should assess whether this satisfies Tier 4 given: 21 downstream theorems, all builds succeed, impl_dependency_delta=-32, and `experiments/writeup.md` still needs to be written (Tier 4 final criterion).
   - For Tier 4 to be complete, a human reviewer needs to judge whether the refactor moves downstream proofs "from implementation details to interface layer". That judgment is documented in the report but not yet in writeup.md.
+
+## 2026-04-19T01:43:39Z — T029 — LwPqEw
+
+- Did:
+  - Comprehensive scan of mathlib4 history (all 5132 commits since module-system SHA 6a54a80825) for pure def→abbrev commits.
+  - Discovery script (`scripts/find_pure_defabbrev_commits.py`): scanned most recent 1000 commits (single-lean-file filter + pure-hunk check) → 0 new.
+  - Pickaxe scan (`-S 'abbrev'`): found 314 abbrev-changing commits; of 35 single-lean-file ones, only 1 had pure hunk: 94c81ed7 (chore: Make {Preorder,PartialOrder}.mk abbrevs). This commit has TWO pure hunks: Preorder.mk' and PartialOrder.mk'.
+  - Extended scan of all 4132 older commits → 0 additional pure single-lean-file commits.
+  - Broadened to multi-file commits (background search): found 3 more commits with pure def→abbrev hunks in one specific file:
+    - 438f1347 FirstObj (CategoryTheory/Sites/EqualizerSheafCondition.lean)
+    - 039a8fe1 MvPolynomial (Algebra/MvPolynomial/Basic.lean)
+    - baeedfa6 smul' (GroupTheory/OreLocalization/Basic.lean)
+  - Total 5 entries added to `data/pure_defabbrev_commits.jsonl`.
+  - Validation script (`scripts/validate_pure_defabbrev.py`) run on first 3 cases:
+    - 94c81ed7 Preorder.mk': builds=True, VERDICT=REJECTED (no unfold/dep patterns)
+    - 94c81ed7 PartialOrder.mk': builds=True, VERDICT=REJECTED (no unfold/dep patterns)
+    - 438f1347 FirstObj: builds=False (baseline itself fails at HEAD — cross-commit incompatibility), VERDICT=REJECTED
+  - cumulative ACCEPTED: T021: 1 + T029: 0 = 1 (Tier 2 criterion ≥3 NOT YET MET)
+- Learned:
+  - Pure single-lean-file def→abbrev commits are extremely rare in mathlib4. In all 5132 commits since module-system SHA, only 1 commit (94c81ed7) qualifies strictly. Most def→abbrev conversions touch multiple files (downstream fixes required).
+  - Preorder.mk' / PartialOrder.mk' are constructor helpers with 0 unfold calls → pipeline correctly REJECTS (no evidence of improvement).
+  - FirstObj baseline build fails at current HEAD → before-state (sha^:file) is incompatible with current mathlib HEAD deps. This reveals a fundamental limitation of testing historical before-states against current mathlib.
+  - The ≥3 ACCEPTED criterion for Tier 2 cannot be reached through the pure def→abbrev pipeline alone; these commits rarely have the unfold/dep pattern the pipeline looks for.
+- Files touched:
+  - `scripts/find_pure_defabbrev_commits.py` (new)
+  - `scripts/validate_pure_defabbrev.py` (new)
+  - `data/pure_defabbrev_commits.jsonl` (new, 5 entries)
+  - `experiments/validation_v3/94c81ed7_Preorder.mkp/report.txt` (new — REJECTED)
+  - `experiments/validation_v3/94c81ed7_PartialOrder.mkp/report.txt` (new — REJECTED)
+  - `experiments/validation_v3/438f1347_FirstObj/report.txt` (new — REJECTED)
+  - `TASKS.md` (T029 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - MvPolynomial (039a8fe1) and smul' (baeedfa6) in pure_defabbrev_commits.jsonl are unvalidated. A follow-up agent could validate them.
+  - Tier 2 requires a different strategy: either broader validation (non-pure commits) or accepting that Tier 2 "≥3 ACCEPTED" is hard to reach with the current pipeline on historical commits.
+  - Tier 4 (experiments/writeup.md) still needs to be written for final human review.

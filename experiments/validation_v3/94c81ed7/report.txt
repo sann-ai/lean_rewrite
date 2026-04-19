@@ -1,0 +1,25 @@
+SHA:                  94c81ed7d90e7f5179087096f648c66d1fd8fda4
+Commit:               chore: Make {Preorder,PartialOrder}.mk abbrevs (#35995)
+File:                 Mathlib/Order/Defs/PartialOrder.lean
+remove_redundant_unfolds: none found
+
+Definition:             PartialOrder.mk'
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-94c81ed7-3cflc2ed/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-94c81ed7-3cflc2ed/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -2.26s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 0
+Baseline impl dependency count: 0
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Order.Defs.PartialOrder
+    Both succeeded: True
+    Wall time delta:   -2.26s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no unfold reduction, no baseline unfold calls, and no typeclass synthesis context

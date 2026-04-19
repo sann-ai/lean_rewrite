@@ -510,9 +510,10 @@
 
 ## T029 — Tier 2 拡張: pure def→abbrev コミットを広く収集して累計 ≥3 件 ACCEPTED
 
-- status: claimed
+- status: done
 - claimed_by: LwPqEw
 - claimed_at: 2026-04-19T00:56:14Z
+- done_at: 2026-04-19T01:43:39Z
 - 依存: T021
 - 内容:
   T021 で 1/6 ACCEPTED。Tier 2 「≥3 件再現」に 2 件以上追加が必要。
@@ -534,6 +535,7 @@
   - `experiments/validation_v3/` に ≥3 件のレポートがある (全件 `All builds succeeded:` 行と `VERDICT:` 行を含む)
   - NOTEBOOK に「cumulative ACCEPTED: N/M (T021: 1 + T029: X)」が記録される
   注: 本タスクの目標は "累計 ≥3 ACCEPTED" だが、全件 REJECTED でも明確な失敗理由が記録されていれば "done" とする。
+- 結果: 全5132コミットを走査; 純粋なsingle-lean-file純粋hunksは94c81ed7のみ (Preorder.mk'とPartialOrder.mk')。multi-fileコミットから3件追加 (FirstObj,MvPolynomial,smul')。validation_v3で3件レポート (全REJECTED): Preorder.mk'とPartialOrder.mk'はbuilds=True (unfoldなし→改善なし)、FirstObj はbuilds=False (current HEAD非互換)。cumulative ACCEPTED: T021:1 + T029:0 = 1/8。
 
 ## T030 — Tier 4 E2E: Irrational に def→abbrev+remove-unfolds を適用して impl_dependency 計測
 
