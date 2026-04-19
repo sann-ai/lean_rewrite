@@ -1,0 +1,10 @@
+{"file": "Mathlib/Analysis/SpecialFunctions/Trigonometric/Angle.lean", "def_name": "Angle", "downstream_theorem_count": 175, "is_noncomputable": false}
+{"file": "Mathlib/MeasureTheory/Function/L1Space/Integrable.lean", "def_name": "Integrable", "downstream_theorem_count": 160, "is_noncomputable": false}
+{"file": "Mathlib/Algebra/Polynomial/Basic.lean", "def_name": "X", "downstream_theorem_count": 153, "is_noncomputable": false}
+{"file": "Mathlib/Combinatorics/Matroid/Closure.lean", "def_name": "closure", "downstream_theorem_count": 131, "is_noncomputable": false}
+{"file": "Mathlib/Analysis/Seminorm.lean", "def_name": "Seminorm", "downstream_theorem_count": 127, "is_noncomputable": false}
+{"file": "Mathlib/Geometry/Euclidean/Angle/Oriented/Basic.lean", "def_name": "oangle", "downstream_theorem_count": 121, "is_noncomputable": false}
+{"file": "Mathlib/Data/EReal/Basic.lean", "def_name": "EReal", "downstream_theorem_count": 117, "is_noncomputable": false}
+{"file": "Mathlib/Computability/Primrec/Basic.lean", "def_name": "Primrec", "downstream_theorem_count": 116, "is_noncomputable": false}
+{"file": "Mathlib/NumberTheory/Real/Irrational.lean", "def_name": "Irrational", "downstream_theorem_count": 115, "is_noncomputable": false}
+{"file": "Mathlib/Data/Finset/Lattice/Fold.lean", "def_name": "sup", "downstream_theorem_count": 110, "is_noncomputable": false}

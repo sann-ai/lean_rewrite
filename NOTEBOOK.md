@@ -844,3 +844,27 @@
     (b) Find a def that doesn't have existing @[simp] lemmas creating loops (very rare in mathlib).
     Recommended: option (a) — implement a `simp-lemma-attr` transformer that targets individual
     characterizing lemmas about the def.
+
+## 2026-04-19T00:10:39Z — T027 — cnCr24
+
+- Did:
+  - Wrote `scripts/find_tier4_candidates.py`: walks `/Users/san/mathlib4/Mathlib/`, finds `def` declarations with (a) no `@[simp]` attr, (b) is_noncomputable=False, (c) ≥5 theorem/lemma/example blocks in the same file that reference the def name by word boundary.
+  - Ran the script over 7933 `.lean` files; found 8977 qualifying candidates.
+  - Saved top 10 (deduplicated by def_name) to `data/tier4_candidates.jsonl`.
+  - Top 3 results:
+    1. `Angle` (175 downstream theorems) — `Mathlib/Analysis/SpecialFunctions/Trigonometric/Angle.lean`
+    2. `Integrable` (160 downstream theorems) — `Mathlib/MeasureTheory/Function/L1Space/Integrable.lean`
+    3. `X` (153 downstream theorems) — `Mathlib/Algebra/Polynomial/Basic.lean`
+- Learned:
+  - 8977 candidates is very large — the ≥5 threshold is easy to satisfy for any well-established definition. The top candidates (Angle, Integrable, X, Seminorm, etc.) are all major algebraic/analytic structures with rich same-file lemma sets — ideal Tier 4 targets.
+  - `X` (polynomial variable) and `closure` (matroid closure) are interesting: they are not `structure`/`class` but plain `def`, so `def → abbrev` pipeline can actually run on them.
+  - `Integrable` and `Seminorm` are `def` (not `structure`) — also pipeline-compatible.
+  - Acceptance criteria met: 10 entries in `data/tier4_candidates.jsonl`, all `downstream_theorem_count >= 5`.
+- Files touched:
+  - `scripts/find_tier4_candidates.py` (new)
+  - `data/tier4_candidates.jsonl` (new, 10 entries)
+  - `TASKS.md` (T027 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - A Tier 4 execution task should pick one of the top candidates (e.g. `Irrational` or `Primrec` — smaller files, focused semantics) and run the full pipeline on it, measuring the impl-dependency metrics from T022.
+  - Tier 3 still needs a fix for the `@[simp]` transformer (add simp to characterizing lemmas, not the def itself).
