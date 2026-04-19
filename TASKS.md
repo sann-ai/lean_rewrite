@@ -425,9 +425,10 @@
 
 ## T026 — Tier 3 第2実例: Nat.divMaxPow に simp-attr E2E を適用して2件目の Tier 3 検証
 
-- status: claimed
+- status: done
 - claimed_by: Y2fs1E
 - claimed_at: 2026-04-18T23:59:35Z
+- done_at: 2026-04-19T00:06:46Z
 - 依存: T025
 - 内容:
   T025 の simp-attr E2E を別の候補(`Nat.divMaxPow`)に対して繰り返し、Tier 3 の「最低 1 変換族で E2E 検証」を複数実例で補強する。
@@ -449,6 +450,10 @@
   4. T025 で得た教訓(--remove-unfolds の挙動など)を適用して調整する。
   5. 結果を `experiments/003_simp_pilot/divMaxPow/report.txt` に保存し、NOTEBOOK に記録。
   受け入れ基準: `experiments/003_simp_pilot/divMaxPow/report.txt` に report が保存され、baseline build 成功、impl_dependency_delta が NOTEBOOK に記録されていること。
+- 結果: divMaxPow REJECTED (candidate FAILED rc=1)。Baseline impl dependency count: 10, delta: +0。
+  追加調査として Fin.succAbove も試したが同様に REJECTED。根本原因: `@[simp] def` が既存の
+  simp lemma セットとループを起こす。divMaxPow は snd_maxPowDvdDiv との反射ループ。succAbove は
+  既存 @[simp] lemma との競合。詳細は NOTEBOOK を参照。
 
 ## T027 — Tier 4 候補探索: 下流証明 ≥5 件を持つ def を mathlib4 から収集
 

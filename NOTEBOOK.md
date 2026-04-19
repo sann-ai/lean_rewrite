@@ -789,3 +789,58 @@
   - If divMaxPow also fails, consider `succAbove` or switch strategy: instead of adding `@[simp]`
     to the def itself, add `@[simp]` to characterizing lemmas about the def.
   - T027 (Tier 4 candidate search) is independent and can be claimed in parallel.
+
+## 2026-04-19T00:06:46Z — T026 — Y2fs1E
+
+- Did:
+  - Ran simp-attr E2E on `Nat.divMaxPow` (Mathlib/Data/Nat/MaxPowDiv.lean):
+    ```
+    PYTHONPATH=src python3 -m lean_rewrite.main \
+      --mathlib /Users/san/mathlib4 \
+      --file Mathlib/Data/Nat/MaxPowDiv.lean \
+      --def-name divMaxPow \
+      --downstream Mathlib.Data.Nat.MaxPowDiv \
+      --transform simp-attr --remove-unfolds \
+      --output-dir experiments/003_simp_pilot/divMaxPow --timeout 600
+    ```
+    Results: Baseline succeeded; Candidate FAILED (rc=1).
+    `Baseline impl dependency count: 10`, `Impl dependency delta: +0` (candidate didn't build).
+    VERDICT: REJECTED.
+  - As T025 notes suggested, also tried `Fin.succAbove` (Mathlib/Data/Fin/SuccPred.lean):
+    Baseline impl dependency count: 68; Candidate FAILED (rc=1). VERDICT: REJECTED.
+  - Results saved:
+    - `experiments/003_simp_pilot/divMaxPow/report.txt`
+    - `experiments/003_simp_pilot/succAbove/report.txt`
+- Learned (especially surprising):
+  - Pattern is now 3-for-3: natDegree, divMaxPow, succAbove all fail when `@[simp]` is added to
+    the def itself.
+  - Root causes differ by case:
+    - `natDegree`: already the simp normal form — def is the LHS of many simp rewrite targets;
+      making it `@[simp]` creates a loop because simp tries to unfold away the normal form.
+    - `divMaxPow`: `@[simp] theorem snd_maxPowDvdDiv (p n) : (p.maxPowDvdDiv n).2 = n.divMaxPow p := rfl`
+      is a reflexivity simp lemma. Adding `@[simp] def divMaxPow` creates the loop:
+      `divMaxPow n p → (maxPowDvdDiv p n).snd → n.divMaxPow p` (since `.snd = .2`).
+    - `succAbove`: has multiple `@[simp]` lemmas that establish specific values of `succAbove`
+      (e.g., `succAbove_zero = Fin.succ`, `succAbove_last = castSucc`). Making the def @[simp]
+      conflicts with these because simp would both unfold the def AND apply the specific lemmas.
+  - **Core lesson**: `@[simp] def X` is almost never safe if there exist `@[simp]` lemmas that
+    characterize `X` or contain `X` in the conclusion. This is precisely the situation for all
+    well-established mathlib definitions: they all have rich simp lemma sets.
+  - The T023 `add_simp_attr` transformer (adding @[simp] to the def itself) is fundamentally
+    misaligned with how mathlib uses simp. Better strategy: add `@[simp]` to *characterizing lemmas*
+    (lemmas that state properties of the def), not to the def definition itself.
+  - Alternative Tier 3 strategy (suggested): instead of `@[simp] def X`, identify lemmas like
+    `theorem X_zero : X n 0 = n` that are NOT yet `@[simp]` but appear frequently in downstream
+    `simp [X_zero]` calls, and add `@[simp]` to those — eliminating the explicit simp hint.
+- Files touched:
+  - `experiments/003_simp_pilot/divMaxPow/report.txt` (new)
+  - `experiments/003_simp_pilot/succAbove/report.txt` (new, additional investigation)
+  - `TASKS.md` (T026 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T027 (Tier 4 candidate search) is open and can be claimed.
+  - Tier 3 is BLOCKED on the `add_simp_attr` approach. A new task is needed to either:
+    (a) Fix the transformer to add @[simp] to *characterizing lemmas* (not the def itself), or
+    (b) Find a def that doesn't have existing @[simp] lemmas creating loops (very rare in mathlib).
+    Recommended: option (a) — implement a `simp-lemma-attr` transformer that targets individual
+    characterizing lemmas about the def.
