@@ -537,9 +537,9 @@
 
 ## T030 — Tier 4 E2E: Irrational に def→abbrev+remove-unfolds を適用して impl_dependency 計測
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: HrOq1m
+- claimed_at: 2026-04-19T00:44:33Z
 - 依存: T022, T027
 - 内容:
   Tier 4 の「5 件以上の下流証明を持つ定義で、pipeline が提案した refactor でビルドが通り impl_dependency_delta < 0」を実証する E2E を走らせる。
