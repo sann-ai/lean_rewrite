@@ -457,9 +457,9 @@
 
 ## T027 — Tier 4 候補探索: 下流証明 ≥5 件を持つ def を mathlib4 から収集
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: cnCr24
+- claimed_at: 2026-04-19T00:09:18Z
 - 依存: T001
 - 内容:
   Tier 4 完成のために「5 件以上の下流証明を持つ定義」を見つけるスクリプトを書く。
