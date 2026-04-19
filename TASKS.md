@@ -594,9 +594,9 @@
 
 ## T032 — Tier 2 新戦略: compound def→abbrev+unfold-removal コミットを収集して検証
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: mK7pQx
+- claimed_at: 2026-04-19T02:30:23Z
 - 依存: T001
 - 内容:
   T029 の教訓: 純粋 def→abbrev コミット(downstream 変更なし)はほぼ unfold を持たず pipeline が REJECTED を返す。
