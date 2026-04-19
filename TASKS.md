@@ -510,9 +510,9 @@
 
 ## T029 — Tier 2 拡張: pure def→abbrev コミットを広く収集して累計 ≥3 件 ACCEPTED
 
-- status: open
-- claimed_by:
-- claimed_at:
+- status: claimed
+- claimed_by: LwPqEw
+- claimed_at: 2026-04-19T00:56:14Z
 - 依存: T021
 - 内容:
   T021 で 1/6 ACCEPTED。Tier 2 「≥3 件再現」に 2 件以上追加が必要。
