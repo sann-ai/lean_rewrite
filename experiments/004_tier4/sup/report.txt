@@ -1,0 +1,18 @@
+Definition:             sup
+Baseline worktree:      /Users/san/mathlib4
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-wt-sy0s5vo9/cand
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 0
+Baseline impl dependency count: 184
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Data.Finset.Lattice.Fold
+    Both succeeded: False
+    Candidate FAILED (rc=1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed
