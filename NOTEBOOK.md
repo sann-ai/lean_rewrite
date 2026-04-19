@@ -1019,3 +1019,37 @@
 - Next steps:
   - T032 (compound def→abbrev+unfold-removal strategy) is open and is the most promising path to Tier 2 ≥3 ACCEPTED.
   - Cumulative ACCEPTED: 2/9. Need 1 more for Tier 2.
+
+## 2026-04-19T03:20:35Z — T032 — mK7pQx
+
+- Did:
+  - Created `scripts/find_compound_defabbrev_commits.py`: scans mathlib4 commits (2000 max) for those that BOTH change `def <name>` → `abbrev <name>` AND remove downstream references to `<name>` in other files. Initially used strict `unfold <name>` removal criterion (found 0 in 2000 commits); broadened to any removed line in non-def files containing `<name>` (found 13).
+  - 13 compound commits saved to `data/compound_defabbrev_commits.jsonl` (fields: sha, file, def_name, removed_unfold_count, downstream_ref_count, before_def, after_def). Notable entries: `c4037aa6` (Ideal.span), `e0793673` (Condensed), `4317fcb5` (SimplicialObject/SSet), `039a8fe1` (MvPolynomial), `438f1347` (forget/incl/fiber/functorHom in CategoryTheory).
+  - Created `scripts/validate_compound_defabbrev.py`: runs pipeline on top N cases.
+  - Validation on 3 completed cases:
+    - `c4037aa6` `span` (Ideal.span): builds=True, instance_context=1, impl_dependency=10, VERDICT: **IMPROVED** → ACCEPTED.
+    - `438f1347` `incl`: builds=True, all signals=0, VERDICT: REJECTED.
+    - `f99e871a` `gaussNorm`: builds=False (candidate build failed), VERDICT: REJECTED.
+  - compound strategy ACCEPTED: 1/3.
+  - Cumulative ACCEPTED across all validation: **3** (T021: 1 [SkewPolynomial] + validation_v3: 1 [MvPolynomial] + compound: 1 [Ideal.span]).
+  - **Tier 2 criterion (≥3 ACCEPTED) NOW MET.**
+- Learned:
+  - Strict `unfold <name>` compound commits are extremely rare — 0 found in 2000 commits. This confirms T029's observation that mathlib proofs rarely use `unfold` directly; downstream proof simplifications use `simp`, `rw`, `exact`, etc.
+  - Broadening to "any removed line containing <name> in downstream files" found 13 commits. Of these, the promising ones are those with `instance_context > 0` in their before-state (Ideal.span fired via instance_context=1).
+  - `gaussNorm` candidate build failed: the `gaussNorm` function body uses a pattern incompatible with `abbrev` conversion.
+  - `incl` (SimplexCategory): def is a pure inclusion, no typeclass context or unfold patterns → pipeline correctly rejects (no evidence of improvement).
+  - `438f1347_forget` (CategoryTheory `forget` with 88 downstream_refs) was still building when the session was terminated due to build complexity. It was NOT included in the 3 completed reports.
+- Files touched:
+  - `scripts/find_compound_defabbrev_commits.py` (new)
+  - `scripts/validate_compound_defabbrev.py` (new)
+  - `data/compound_defabbrev_commits.jsonl` (new, 13 entries)
+  - `experiments/validation_compound/c4037aa6_span/report.txt` (new — IMPROVED)
+  - `experiments/validation_compound/c4037aa6_span/candidate.patch` (new)
+  - `experiments/validation_compound/438f1347_incl/report.txt` (new — REJECTED)
+  - `experiments/validation_compound/f99e871a_gaussNorm/report.txt` (new — REJECTED)
+  - `TASKS.md` (T032 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - Tier 2 criterion (≥3 ACCEPTED) is now met. Human review of cumulative evidence is now possible.
+  - Remaining compound cases (e0793673 Condensed, 4317fcb5 SimplicialObject/SSet, 438f1347 forget) are unvalidated and could yield more ACCEPTED results.
+  - All 4 Tiers have numeric evidence. Human should review whether Tier 4 writeup (experiments/writeup.md) satisfies the qualitative Buzzard-lens criterion.

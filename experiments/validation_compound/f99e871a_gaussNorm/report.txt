@@ -1,0 +1,25 @@
+SHA:                  f99e871a379db6c7068f88120d4437ae990bd42c
+Commit:               refactor: PowerSeries.gaussNorm (#38074)
+File:                 Mathlib/RingTheory/PowerSeries/GaussNorm.lean
+Definition:           gaussNorm
+Removed unfold count (in commit): 0
+remove_redundant_unfolds: none found
+
+Definition:             gaussNorm
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-f99e871a-bzh666tq/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-f99e871a-bzh666tq/candidate
+All builds succeeded:   False
+Wall time delta (sum):  +0.00s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 0
+Baseline impl dependency count: 6
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.RingTheory.PowerSeries.GaussNorm
+    Both succeeded: False
+    Baseline FAILED (rc=-1)
+
+VERDICT: REJECTED
+  Reason: one or more builds failed

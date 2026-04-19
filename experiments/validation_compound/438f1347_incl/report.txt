@@ -1,0 +1,27 @@
+SHA:                  438f1347078fe16af77f6693057f49eaee5abe1f
+Commit:               refactor(CategoryTheory): one-field structure morphisms in the category of types
+File:                 Mathlib/AlgebraicTopology/SimplexCategory/Defs.lean
+Definition:           incl
+Removed unfold count (in commit): 0
+remove_redundant_unfolds: none found
+
+Definition:             incl
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-438f1347-lj_63het/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-438f1347-lj_63het/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -2.84s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 0
+Baseline impl dependency count: 0
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.AlgebraicTopology.SimplexCategory.Defs
+    Both succeeded: True
+    Wall time delta:   -2.84s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no unfold reduction, no baseline unfold calls, and no typeclass synthesis context

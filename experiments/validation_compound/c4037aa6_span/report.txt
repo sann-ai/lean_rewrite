@@ -1,0 +1,26 @@
+SHA:                  c4037aa6b44c39bf71eb3d088db2b5c37ba953ce
+Commit:               chore: make `Ideal.span` an `abbrev` (#38145)
+File:                 Mathlib/RingTheory/Ideal/Span.lean
+Definition:           span
+Removed unfold count (in commit): 0
+remove_redundant_unfolds: none found
+
+Definition:             span
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-c4037aa6-l4dfk_xb/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-comp-c4037aa6-l4dfk_xb/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -20.28s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 1
+Baseline impl dependency count: 10
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.RingTheory.Ideal.Span
+    Both succeeded: True
+    Wall time delta:   -20.28s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: IMPROVED — patch accepted
