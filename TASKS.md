@@ -477,9 +477,10 @@
 
 ## T028 — Tier 3 確認: Nat.dist で def→abbrev+remove-unfolds を T022 メトリクス付きで再実行
 
-- status: claimed
+- status: done
 - claimed_by: dRafvq
 - claimed_at: 2026-04-19T00:26:26Z
+- done_at: 2026-04-19T00:28:21Z
 - 依存: T022, T014
 - 内容:
   T014 が Nat.dist で ACCEPTED (unfold_count_delta=-5) を取ったが、T022 の impl_dependency_count メトリクスはその後に追加された。

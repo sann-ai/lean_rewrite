@@ -874,3 +874,38 @@
 - Reading: Tier 1 satisfied. Tier 2 unmet (1/6 ACCEPTED; need ≥3). Tier 3 unmet (T022 impl_dependency metrics added post-T014, no successful E2E with those metrics yet; T025/T026 simp-attr approach all 3-for-3 failed with build errors). Tier 4 unmet (T027 found candidates, no pipeline run yet).
 - New tasks: T028..T030
 - Rationale: T028 re-runs Nat.dist with the current pipeline (T022 impl_dependency metrics now present) — expected ACCEPTED + delta<0, confirming Tier 3 in under 15 minutes. T029 searches broader mathlib4 commit history for pure def→abbrev changes (single-file, body-identical) to reach cumulative ≥3 ACCEPTED for Tier 2; current 6-entry dataset is too small with only 1/6 valid. T030 runs the full pipeline on `Irrational` (115 downstream theorems from T027) to generate Tier 4 numeric evidence; success = candidate builds + impl_dependency_delta<0. These three tasks each target a distinct unmet tier with concrete acceptance criteria.
+
+## 2026-04-19T00:28:21Z — T028 — dRafvq
+
+- Did:
+  - Re-ran Nat.dist pipeline with current codebase (T022 impl_dependency_count metrics now active).
+  - Command:
+    ```
+    PYTHONPATH=src python3 -m lean_rewrite.main \
+      --mathlib /Users/san/mathlib4 \
+      --file Mathlib/Data/Nat/Dist.lean \
+      --def-name dist \
+      --downstream Mathlib.Data.Nat.Dist \
+      --remove-unfolds \
+      --output-dir experiments/002_tier3_nat_dist_v2 \
+      --timeout 600
+    ```
+  - Results:
+    - All builds succeeded: True
+    - Baseline impl dependency count: 33
+    - Impl dependency delta: -32
+    - Unfold count delta: -16
+    - VERDICT: IMPROVED (patch accepted)
+  - **Tier 3 CONFIRMED**: `def → abbrev + remove_redundant_unfolds` on `Nat.dist` reduces impl_dependency_count from 33 → 1 (delta = -32). This satisfies the Tier 3 criterion: "下流の実装依存指標の減少が数値として示せる再現例".
+- Learned:
+  - impl_dependency_count of 33 includes unfold (16) + show/change/projection patterns. Delta of -32 shows that nearly all implementation-dependent syntax was eliminated.
+  - VERDICT is now "IMPROVED" (not "ACCEPTED") — this is the same acceptance signal, just phrased differently in the current code.
+  - Tier 3 acceptance criterion is met for the `def→abbrev` transformation family.
+- Files touched:
+  - `experiments/002_tier3_nat_dist_v2/report.txt` (new)
+  - `experiments/002_tier3_nat_dist_v2/candidate.patch` (new)
+  - `TASKS.md` (T028 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T029 (Tier 2 expansion to reach ≥3 ACCEPTED) and T030 (Tier 4 E2E on Irrational) are open.
+  - Tier 3 is now confirmed for def→abbrev. Tier 4 still needs an E2E run (T030).
