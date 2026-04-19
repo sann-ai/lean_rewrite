@@ -1,0 +1,11 @@
+--- a/Mathlib/Algebra/MvPolynomial/Basic.lean
++++ b/Mathlib/Algebra/MvPolynomial/Basic.lean
+@@ -78,7 +78,7 @@
+ 
+ /-- Multivariate polynomial, where `σ` is the index set of the variables and
+   `R` is the coefficient ring -/
+-def MvPolynomial (σ : Type*) (R : Type*) [CommSemiring R] :=
++abbrev MvPolynomial (σ : Type*) (R : Type*) [CommSemiring R] :=
+   AddMonoidAlgebra R (σ →₀ ℕ)
+ 
+ namespace MvPolynomial

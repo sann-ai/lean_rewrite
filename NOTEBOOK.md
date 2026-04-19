@@ -998,3 +998,24 @@
 - Next steps:
   - T031 (validate MvPolynomial + smul' from pure_defabbrev_commits.jsonl) and T032 (compound commit strategy for Tier 2) are still open.
   - Human should review `experiments/writeup.md` to make final Tier 4 call.
+
+## 2026-04-19T02:28:11Z — T031 — sXm7Kp
+
+- Did:
+  - Ran `scripts/validate_pure_defabbrev.py --max-cases 2 --timeout 600` to validate the 2 remaining unvalidated entries from `data/pure_defabbrev_commits.jsonl`.
+  - `039a8fe1` — `MvPolynomial` (Mathlib/Algebra/MvPolynomial/Basic.lean): builds=True, Baseline instance context count=7, VERDICT: IMPROVED (patch accepted). The before-state file has 7 lines with `instance ... MvPolynomial` context; `is_improvement` correctly fires on `baseline_instance_context > 0`.
+  - `baeedfa6` — `smul'` (Mathlib/GroupTheory/OreLocalization/Basic.lean): builds=True, Baseline unfold/instance/impl_dependency all 0, VERDICT: REJECTED. `smul'` is a private helper with no downstream unfold/instance patterns; pipeline correctly sees no evidence of improvement.
+  - Reports saved to `experiments/validation_v3/039a8fe1_MvPolynomial/` and `experiments/validation_v3/baeedfa6_smulp/`.
+- Learned:
+  - `MvPolynomial` ACCEPTED is the second ACCEPTED in validation_v3, via `instance_context_count` signal (T019 feature). This is a real mathlib commit (refactor #36678) where `abbrev` was intentionally chosen for typeclass inference reasons.
+  - Cumulative ACCEPTED after T031: **2** (T021: 1 [SkewPolynomial] + validation_v3: 1 [MvPolynomial]). Tier 2 criterion ≥3 NOT YET MET.
+  - `smul'` is a private `def` inside a namespace body; it has no unfold calls or typeclass context in the same file. The pipeline correctly rejects it. The before→after change in the real commit was purely cosmetic (private helper reducibility).
+- Files touched:
+  - `experiments/validation_v3/039a8fe1_MvPolynomial/report.txt` (new)
+  - `experiments/validation_v3/039a8fe1_MvPolynomial/candidate.patch` (new)
+  - `experiments/validation_v3/baeedfa6_smulp/report.txt` (new)
+  - `TASKS.md` (T031 → done)
+  - `NOTEBOOK.md` (this entry)
+- Next steps:
+  - T032 (compound def→abbrev+unfold-removal strategy) is open and is the most promising path to Tier 2 ≥3 ACCEPTED.
+  - Cumulative ACCEPTED: 2/9. Need 1 more for Tier 2.

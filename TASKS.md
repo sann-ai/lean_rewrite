@@ -573,9 +573,10 @@
 
 ## T031 — Tier 2 補完: 残り 2 件 (MvPolynomial, smul') の検証
 
-- status: claimed
+- status: done
 - claimed_by: sXm7Kp
 - claimed_at: 2026-04-19T02:14:38Z
+- done_at: 2026-04-19T02:28:11Z
 - 依存: T029
 - 内容:
   T029 で `data/pure_defabbrev_commits.jsonl` の 5 件中 3 件のみ検証済み。残り 2 件を検証する。

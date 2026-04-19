@@ -1,0 +1,24 @@
+SHA:                  039a8fe1a6e1025058179298f8728e0f1102312b
+Commit:               refactor(Algebra/MvPolynomial): turn into an `abbrev` (#36678)
+File:                 Mathlib/Algebra/MvPolynomial/Basic.lean
+remove_redundant_unfolds: none found
+
+Definition:             MvPolynomial
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-039a8fe1-mlhe6hf8/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-039a8fe1-mlhe6hf8/candidate
+All builds succeeded:   True
+Wall time delta (sum):  -4.07s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 7
+Baseline impl dependency count: 2
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.Algebra.MvPolynomial.Basic
+    Both succeeded: True
+    Wall time delta:   -4.07s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: IMPROVED — patch accepted

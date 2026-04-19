@@ -1,0 +1,25 @@
+SHA:                  baeedfa663b5f7e9c6d1b99921f337a0ee60182c
+Commit:               chore: unify `LocalizedModule` and `OreLocalization` (#31862)
+File:                 Mathlib/GroupTheory/OreLocalization/Basic.lean
+remove_redundant_unfolds: none found
+
+Definition:             smul'
+Baseline worktree:      /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-baeedfa6-39yegb_h/baseline
+Candidate worktree:     /var/folders/m8/_5mk1wp97jv1mj31125dg2pw0000gn/T/lr-v3-baeedfa6-39yegb_h/candidate
+All builds succeeded:   True
+Wall time delta (sum):  +6.04s
+Baseline unfold count:  0
+Unfold count delta:     +0
+Baseline instance context count: 0
+Baseline impl dependency count: 0
+Impl dependency delta:   +0
+Proof LOC delta:        +0
+
+  Module: Mathlib.GroupTheory.OreLocalization.Basic
+    Both succeeded: True
+    Wall time delta:   +6.04s
+    Unfold count delta: +0
+    Proof LOC delta:    +0
+
+VERDICT: REJECTED
+  Reason: no unfold reduction, no baseline unfold calls, and no typeclass synthesis context
