@@ -474,3 +474,95 @@
   3. NOTEBOOK に上位 3 件のサマリを記録する。
   注: 同ファイル内の参照数のみカウントする(cross-file は偽陽性が多いため)。スクリプトは既存の `find_simp_eligible_defs.py` を参考にしてよい。
   受け入れ基準: `data/tier4_candidates.jsonl` に 3 件以上のエントリが存在し、各エントリの `downstream_theorem_count >= 5` であること。
+
+## T028 — Tier 3 確認: Nat.dist で def→abbrev+remove-unfolds を T022 メトリクス付きで再実行
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T022, T014
+- 内容:
+  T014 が Nat.dist で ACCEPTED (unfold_count_delta=-5) を取ったが、T022 の impl_dependency_count メトリクスはその後に追加された。
+  Tier 3 の「下流の実装依存指標の減少が数値として示せる再現例」を確定させるために、現行パイプラインで再実行する。
+  手順:
+  1. 以下のコマンドを実行 (SESSION ディレクトリ内で):
+     ```
+     PYTHONPATH=src python3 -m lean_rewrite.main \
+       --mathlib /Users/san/mathlib4 \
+       --file Mathlib/Data/Nat/Dist.lean \
+       --def-name dist \
+       --downstream Mathlib.Data.Nat.Dist \
+       --remove-unfolds \
+       --output-dir experiments/002_tier3_nat_dist_v2 \
+       --timeout 600
+     ```
+  2. report.txt を確認し NOTEBOOK に以下を記録:
+     - `All builds succeeded:` (True/False)
+     - `VERDICT:` (ACCEPTED/REJECTED/IMPROVED)
+     - `Baseline impl dependency count:` の数値
+     - `Impl dependency delta:` の数値
+  3. ACCEPTED かつ delta < 0 であれば「Tier 3 confirmed: remove_redundant_unfolds で impl_dependency が数値的に減少」と NOTEBOOK に記録する。
+  受け入れ基準:
+  - `experiments/002_tier3_nat_dist_v2/report.txt` が生成され、`All builds succeeded: True` を含む
+  - `Baseline impl dependency count:` ≥ 1 かつ `Impl dependency delta:` < 0
+  注: impl_dependency_count は unfold + show/change + プロジェクション の合計。T014 の unfold=16 が baseline に含まれるはずなので delta は ≤ -5 が期待値。
+
+## T029 — Tier 2 拡張: pure def→abbrev コミットを広く収集して累計 ≥3 件 ACCEPTED
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T021
+- 内容:
+  T021 で 1/6 ACCEPTED。Tier 2 「≥3 件再現」に 2 件以上追加が必要。
+  手順:
+  1. `scripts/find_pure_defabbrev_commits.py` を新規作成:
+     - `/Users/san/mathlib4` で `git log --format="%H" 6a54a80825..HEAD` を実行 (全コミット走査)
+     - 各 SHA に `git diff-tree --no-commit-id -r --name-only <sha>` で変更ファイル一覧を取得
+     - Lean ファイル 1 件のみ変更のコミットをフィルタ
+     - `git show <sha>` の unified diff をパース: `- def <name>` と `+ abbrev <name>` の同名ペアがあり、本体行が一致するコミットを収集
+     - 既存 `data/refactor_commits_post_module.jsonl` の SHA を除外
+     - 最大 1000 コミット走査し、結果を `data/pure_defabbrev_commits.jsonl` に保存 (フィールド: sha, file, def_name, before_def, after_def)
+     - ヒントにない edge case: noncomputable/protected modifier のみ違う場合はスキップ
+  2. `scripts/validate_pure_defabbrev.py` を新規作成:
+     - jsonl の各エントリに対して HEAD worktree + `git show sha^:<file>` オーバーレイ + `run_pipeline(remove_unfolds=True)` を実行
+     - 結果を `experiments/validation_v3/<sha8>/report.txt` に保存
+  3. ≥5 件を試みて cumulative ACCEPTED 数を NOTEBOOK に記録する。
+  受け入れ基準:
+  - `data/pure_defabbrev_commits.jsonl` に ≥3 件のエントリがある
+  - `experiments/validation_v3/` に ≥3 件のレポートがある (全件 `All builds succeeded:` 行と `VERDICT:` 行を含む)
+  - NOTEBOOK に「cumulative ACCEPTED: N/M (T021: 1 + T029: X)」が記録される
+  注: 本タスクの目標は "累計 ≥3 ACCEPTED" だが、全件 REJECTED でも明確な失敗理由が記録されていれば "done" とする。
+
+## T030 — Tier 4 E2E: Irrational に def→abbrev+remove-unfolds を適用して impl_dependency 計測
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T022, T027
+- 内容:
+  Tier 4 の「5 件以上の下流証明を持つ定義で、pipeline が提案した refactor でビルドが通り impl_dependency_delta < 0」を実証する E2E を走らせる。
+  対象: data/tier4_candidates.jsonl の `Irrational` エントリ
+    file: Mathlib/NumberTheory/Real/Irrational.lean
+    def_name: Irrational
+    downstream_theorem_count: 115
+  手順:
+  1. 対象ファイルを事前確認: `Irrational` の定義と downstream の `unfold Irrational` / `show.*Irrational` / `change.*Irrational` の出現数をカウントしメモ
+  2. 以下を実行:
+     ```
+     PYTHONPATH=src python3 -m lean_rewrite.main \
+       --mathlib /Users/san/mathlib4 \
+       --file Mathlib/NumberTheory/Real/Irrational.lean \
+       --def-name Irrational \
+       --downstream Mathlib.NumberTheory.Real.Irrational \
+       --remove-unfolds \
+       --output-dir experiments/004_tier4/Irrational \
+       --timeout 600
+     ```
+  3. NOTEBOOK に結果を記録:
+     - `All builds succeeded:`, `VERDICT:`, `Baseline impl dependency count:`, `Impl dependency delta:`
+     - downstream_theorem_count ≥ 5 (T027 データで 115 と確認済み) を明記
+  受け入れ基準:
+  - `experiments/004_tier4/Irrational/report.txt` に上記 4 行が含まれる
+  注: Tier 4 最終承認は人間が行う。本タスクは数値エビデンスの生成のみ担う。
+  もし Irrational の def→abbrev で candidate build が失敗する場合は、data/tier4_candidates.jsonl の他の候補 (Primrec, EReal, sup など) に切り替えて試みること。
