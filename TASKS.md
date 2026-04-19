@@ -570,3 +570,77 @@
   - `experiments/004_tier4/Irrational/report.txt` に上記 4 行が含まれる
   注: Tier 4 最終承認は人間が行う。本タスクは数値エビデンスの生成のみ担う。
   もし Irrational の def→abbrev で candidate build が失敗する場合は、data/tier4_candidates.jsonl の他の候補 (Primrec, EReal, sup など) に切り替えて試みること。
+
+## T031 — Tier 2 補完: 残り 2 件 (MvPolynomial, smul') の検証
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T029
+- 内容:
+  T029 で `data/pure_defabbrev_commits.jsonl` の 5 件中 3 件のみ検証済み。残り 2 件を検証する。
+  対象:
+  - `039a8fe1` — `MvPolynomial` (Algebra/MvPolynomial/Basic.lean)
+  - `baeedfa6` — `smul'` (GroupTheory/OreLocalization/Basic.lean)
+  手順:
+  1. 既存の `scripts/validate_pure_defabbrev.py` を使って 2 件を検証する。
+     `git show sha^:<file>` で before-state を取得し、HEAD の mathlib worktree に上書きしてから pipeline を実行。
+  2. 結果を `experiments/validation_v3/<sha8>/report.txt` に保存する。
+  3. NOTEBOOK に「cumulative ACCEPTED after T031: N」を記録する(T021 の 1 件 + T029 の 0 件 + 今回の結果)。
+  受け入れ基準:
+  - `experiments/validation_v3/039a8fe1*/report.txt` と `experiments/validation_v3/baeedfa6*/report.txt` が存在し、各レポートに `All builds succeeded:` と `VERDICT:` が含まれる。
+  - NOTEBOOK に cumulative ACCEPTED 数が記録されている。
+
+## T032 — Tier 2 新戦略: compound def→abbrev+unfold-removal コミットを収集して検証
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T001
+- 内容:
+  T029 の教訓: 純粋 def→abbrev コミット(downstream 変更なし)はほぼ unfold を持たず pipeline が REJECTED を返す。
+  より良い戦略は、def→abbrev **かつ** 同コミットで downstream の `unfold <name>` 行を削除しているコミットを探すこと。
+  これらのコミットの before-state は必ず unfold を持つので pipeline が ACCEPTED を返す可能性が高い。
+  手順:
+  1. `scripts/find_compound_defabbrev_commits.py` を新規作成。
+     `/Users/san/mathlib4` で以下のロジックを実行:
+     - `git log --format="%H" 6a54a80825..HEAD` で全コミット一覧を取得
+     - 各 SHA に `git diff-tree --no-commit-id -r -p <sha>` を呼び unified diff を取得
+     - 次のパターンが両方ある diff をフィルタ:
+       (a) `^-def <name>` と `^\+abbrev <name>` (または `@[reducible]` 付与)
+       (b) `^-.*unfold <name>` (同じ diff 内に unfold 削除行が存在)
+     - 最大 2000 コミット走査し、マッチした結果を `data/compound_defabbrev_commits.jsonl` に保存
+       (フィールド: sha, file, def_name, removed_unfold_count, before_def, after_def)
+  2. `scripts/validate_compound_defabbrev.py` を新規作成。jsonl の上位 5 件を対象に:
+     - `git show sha^:<file>` で before-state を取得し HEAD worktree に上書き
+     - `run_pipeline(remove_unfolds=True)` を実行
+     - 結果を `experiments/validation_compound/<sha8>/report.txt` に保存
+  3. NOTEBOOK に発見件数・検証件数・ACCEPTED 件数を記録。
+  受け入れ基準:
+  - `data/compound_defabbrev_commits.jsonl` に ≥1 件のエントリ(0 件の場合は観察として NOTEBOOK に記録して done)
+  - `experiments/validation_compound/` に ≥3 件のレポート(各レポートに `All builds succeeded:` と `VERDICT:`)
+  - NOTEBOOK に「compound strategy ACCEPTED: N/M」が記録される
+
+## T033 — Tier 4 完成: experiments/writeup.md を書く
+
+- status: open
+- claimed_by:
+- claimed_at:
+- 依存: T028, T030
+- 内容:
+  Tier 4 の最終基準「Buzzard ら *Schemes in Lean* の少なくとも 1 対について『下流が実装詳細から interface 層に移った』という観点での比較を `experiments/writeup.md` に記す」を達成する。
+  手順:
+  1. `experiments/002_tier3_nat_dist_v2/report.txt` と `experiments/004_tier4/Nat_dist/report.txt` を読み込む。
+  2. `/Users/san/mathlib4/Mathlib/Data/Nat/Dist.lean` を読み込み、変換前の定義と downstream の `unfold Nat.dist; lia` パターンを確認する。
+  3. `experiments/004_tier4/Nat_dist/candidate.patch` を読み込んで変換後の状態を確認する。
+  4. `experiments/writeup.md` を新規作成。以下の構成で書く (Markdown):
+     - **Background**: Buzzard ら *Schemes in Lean* の教訓(実装詳細への依存を減らす方向への refactor)を 3-5 文で要約
+     - **Example: Nat.dist (def→abbrev + remove_redundant_unfolds)**: 
+       - Before: `def dist` の定義と典型的な downstream `unfold Nat.dist; lia` の例
+       - After: `abbrev dist` への変換で冗長 unfold が削除され `lia` だけで閉じる状態になること
+       - Metrics: baseline impl_dependency_count=33, delta=-32, 21 downstream theorems, VERDICT=IMPROVED
+     - **Buzzard lens analysis**: 変換前は「dist の構造的定義(n - m + (m - n))を unfold して lia に渡す」という実装依存パターン。変換後は「dist が reducible になり、lia が直接 dist を数として扱える」ので、downstream が実装細部から独立している。これは Buzzard 第2版→第3版の教訓(局所環の具体構成から局所化述語経由への移行)の簡略版と見なせる。
+     - **Limitations**: Irrational・sup では candidate build 失敗(typeclass 結合の複雑さ)。def→abbrev は単純な数値型 def にのみ安全に適用可能。
+     - **Next**: Tier 3 の @[simp] 変換族を活用すれば、より複雑な定義でも interface 依存化できる可能性。
+  5. `experiments/writeup.md` が ≥300 words かつ上記セクションを含むことを確認する。
+  受け入れ基準: `experiments/writeup.md` が存在し、`Baseline impl dependency count`, `VERDICT`, `Buzzard` のキーワードが含まれること。

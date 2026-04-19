@@ -973,3 +973,9 @@
   - MvPolynomial (039a8fe1) and smul' (baeedfa6) in pure_defabbrev_commits.jsonl are unvalidated. A follow-up agent could validate them.
   - Tier 2 requires a different strategy: either broader validation (non-pure commits) or accepting that Tier 2 "≥3 ACCEPTED" is hard to reach with the current pipeline on historical commits.
   - Tier 4 (experiments/writeup.md) still needs to be written for final human review.
+
+## 2026-04-19T01:47:27Z — planning — WeiKoA
+- Trigger: TASKS.md had zero eligible open tasks (all T001–T030 are `done`).
+- Reading: Tier 2 is at cumulative 1/8 ACCEPTED (T021: 1, T029: 0); criterion requires ≥3. Tier 4 has numeric evidence (Nat.dist: 21 theorems, impl_dependency_delta=-32, VERDICT=IMPROVED) but `experiments/writeup.md` is missing, blocking the final human-review criterion.
+- New tasks: T031..T033
+- Rationale: T031 is a quick completion of T029's unfinished work (2 unvalidated entries). T032 addresses T029's key insight — "pure" def→abbrev commits lack unfold patterns, but *compound* commits (def→abbrev + unfold removal in same diff) necessarily have them, making ACCEPTED far more likely; this is the most promising path to Tier 2 ≥3. T033 closes Tier 4 by writing the qualitative writeup that the completion criterion explicitly requires; the underlying numeric evidence already exists in T028/T030 reports.
