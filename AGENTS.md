@@ -206,6 +206,24 @@ If Step 2 finds **zero eligible open tasks** (all existing tasks are `done` or `
 - If you believe the Completion criteria themselves need revision, stop planning and append `## <UTC> — blocked: needs human — <agent-id>` to `NOTEBOOK.md` naming the criterion and why; do not add tasks premised on revised criteria.
 - If the last 2 consecutive NOTEBOOK entries are already `planning` entries (another agent just planned, and the last-planned tasks haven't executed yet), stop without adding more — you're looping.
 
+### Auto-pause after prolonged idle
+
+If the last **5 NOTEBOOK entries are all `idle` entries**, the project is genuinely out of productive work and cron cycles are being wasted. Instead of writing a 6th idle entry:
+
+1. Call `mcp__scheduled-tasks__update_scheduled_task` with:
+   - `taskId`: `lean-rewrite-agent`
+   - `enabled`: false
+2. Append a single NOTEBOOK entry:
+   ```
+   ## <UTC ISO> — auto-pause — <agent-id>
+   - Trigger: 5+ consecutive idle entries; completion criteria still appear met.
+   - Action: Disabled the `lean-rewrite-agent` scheduled task to conserve cron cycles.
+   - Re-enable: After the human operator adjusts `PLAN.md` Completion criteria or adds new tasks, they can toggle the task back on via `mcp__scheduled-tasks__update_scheduled_task(taskId='lean-rewrite-agent', enabled=true)` or from the desktop Scheduled sidebar.
+   ```
+3. Commit as `chore: auto-pause scheduler after idle streak`, push, stop.
+
+This rule applies to **the default scheduled-task agent only**. A manually-invoked agent (spawned by a human via the Agent tool, or by the user running the kickoff prompt directly) must not pause the scheduler.
+
 ## Conventions
 
 - **Commit messages**:
